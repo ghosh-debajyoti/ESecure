@@ -103,9 +103,9 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
         if campaign_info.get("is_coordinated_campaign"):
             is_coordinated = True
             
-        lookalikes.extend(campaign_info.get("lookalikes", []))
+        for c in campaign_info.get("lookalikes", []):
+            lookalikes.append({"type": "CAMPAIGN_MATCH", "case_number": c})
 
-        
         sha256_hash = EvidenceService.generate_hash(raw_bytes)
         def clean_header(val):
             if val is None: return None

@@ -30,7 +30,7 @@ export interface DashboardData {
   };
   property?: {
     attachments?: Attachment[];
-    indicators?: string[];
+    indicators?: any[];
   };
   trace?: {
     relay_route?: RouteHop[];
@@ -97,8 +97,11 @@ export default function AnalysisDashboard({ data, isLoading }: Props) {
   }
   
   if (property?.indicators) {
-    property.indicators.forEach((ind, i) => {
-      indicators.push(<span key={`ind-${i}`} className="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">{ind}</span>);
+    property.indicators.forEach((ind: any, i: number) => {
+      const displayValue = typeof ind === 'object' && ind !== null ? ind.value : ind;
+      if (displayValue) {
+        indicators.push(<span key={`ind-${i}`} className="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">{displayValue}</span>);
+      }
     });
   }
   
