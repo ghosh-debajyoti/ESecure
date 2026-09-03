@@ -8,3 +8,12 @@ python-multipart
 requests
 Levenshtein
 py-tlsh
+datasets
+evaluate
+accelerate
+kagglehub
+pandas
+scikit-learn
+httpx
+cachetools
+pydantic-settings

@@ -3,7 +3,7 @@ from transformers import pipeline
 # Load pipeline globally to avoid reloading on every request
 try:
     phishing_classifier = pipeline(
-        "text-classification", model="ElSlay/BERT-Phishing-Email-Model"
+        "text-classification", model="./saved_phishing_model"
     )
 except Exception as e:
     print(f"Warning: Failed to load model. Error: {e}")
