@@ -8,7 +8,7 @@ from app.database import engine, Base
 # Import the model so that metadata is populated
 from app.models import EmailAnalysis
 
-def verify_db():
+def main():
     try:
         # Try creating the tables
         Base.metadata.create_all(bind=engine)
@@ -20,4 +20,4 @@ def verify_db():
         sys.exit(1)
 
 if __name__ == "__main__":
-    verify_db()
+    main()
