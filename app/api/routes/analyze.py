@@ -47,15 +47,17 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
         
         # 2. Forensics & Threat Score
         alignment = ForensicEngineService(parsed.headers).evaluate_alignment()
-        final_score = ThreatScoringService(parsed.body, alignment["technical_flag_score"]).generate_final_score()
+        final_score, model_score, tech_score = ThreatScoringService(parsed.body, alignment["technical_flag_score"]).generate_final_score()
         
         # 3. TLSH DNA
         tlsh_hash = DnaService.generate_hash(parsed.body)
         sim_score, is_coordinated = DnaService.correlate_tlsh(db, tlsh_hash)
         
         # Penalize for malicious attachments
+        attachment_penalty = 0.0
         if any(a.get("is_suspicious", False) for a in parsed.attachments):
-            final_score = min(final_score + 40.0, 100.0)
+            attachment_penalty = 40.0
+            final_score = min(final_score + attachment_penalty, 100.0)
         
         # 4. Intelligence
         infra_intel = {}
@@ -71,8 +73,10 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
                 lookalikes.append(res)
 
         parsed.indicators = await ThreatIntelService.enrich_indicators(parsed.indicators)
+        intel_penalty = 0.0
         for ind in parsed.indicators:
             if ind.get("reputation", {}).get("is_flagged", False):
+                intel_penalty = max(intel_penalty, 85.0 - final_score)
                 final_score = max(final_score, 85.0)
                 
         # 5. Graph
@@ -128,12 +132,19 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
         # 7. Translator to UCO
         uco_format = TranslatorService.map_to_uco(
             headers=parsed.headers,
+            body=parsed.body,
             relay_route=parsed.relay_route,
             indicators=parsed.indicators,
             attachments=parsed.attachments,
             mime_boundaries=parsed.mime_boundaries,
             tlsh_hash=tlsh_hash,
             threat_score=final_score,
+            threat_score_breakdown={
+                "model_score": model_score,
+                "technical_score": tech_score,
+                "attachment_penalty": attachment_penalty,
+                "intel_penalty": intel_penalty
+            },
             technical_flags=alignment,
             lookalikes=lookalikes,
             is_coordinated=is_coordinated,
@@ -149,6 +160,7 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
                     "case_number": db_case.case_number,
                     "status": db_case.status,
                     "created_at": db_case.created_at.isoformat() if db_case.created_at else None,
+                    "graph": graph,
                     **uco_format
                 }
                 pg_db.commit()
@@ -193,3 +205,39 @@ async def export_pdf_report(case_number: str, pg_db: Session = Depends(get_pg_db
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to generate report: {e!s}")
+
+@router.get("/cases")
+async def get_cases(limit: int = 50, pg_db: Session = Depends(get_pg_db)):
+    try:
+        records = pg_db.query(EmailAnalysis).order_by(EmailAnalysis.created_at.desc()).limit(limit).all()
+        return [{
+            "case_number": r.case_number,
+            "subject": r.subject,
+            "sender": r.sender,
+            "threat_score": r.threat_score,
+            "created_at": r.created_at,
+            "status": r.uco_data.get("status", "open") if r.uco_data else "open"
+        } for r in records]
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to fetch cases: {e!s}")
+
+@router.get("/cases/{case_number}")
+async def get_case(case_number: str, db: Session = Depends(get_db), pg_db: Session = Depends(get_pg_db)):
+    try:
+        record = pg_db.query(EmailAnalysis).filter_by(case_number=case_number).first()
+        if not record or not record.uco_data:
+            raise HTTPException(status_code=404, detail="Case data not found")
+            
+        data = dict(record.uco_data)
+        if "graph" not in data:
+            db_case = db.query(Case).filter_by(case_number=case_number).first()
+            if db_case and db_case.stix_graph:
+                data["graph"] = db_case.stix_graph
+                
+        return data
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to fetch case: {e!s}")

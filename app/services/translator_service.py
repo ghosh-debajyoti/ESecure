@@ -10,16 +10,16 @@ from app.schemas.domain import (
 
 class TranslatorService:
     @staticmethod
-    def map_to_uco(headers: dict[str, Any], relay_route: list[dict[str, Any]], 
+    def map_to_uco(headers: dict[str, Any], body: str, relay_route: list[dict[str, Any]], 
                    indicators: list[dict[str, Any]], attachments: list[dict[str, Any]], 
                    mime_boundaries: list[str], tlsh_hash: str, 
-                   threat_score: float, technical_flags: dict[str, Any], 
+                   threat_score: float, threat_score_breakdown: dict[str, Any], technical_flags: dict[str, Any], 
                    lookalikes: list[dict[str, Any]], is_coordinated: bool, 
                    sha256_hash: str) -> dict[str, Any]:
                    
-        trace = TraceBase(headers=headers, relay_route=relay_route)
+        trace = TraceBase(headers=headers, relay_route=relay_route, body=body)
         prop = PropertyBase(indicators=indicators, attachments=attachments, mime_boundaries=mime_boundaries, tlsh_hash=tlsh_hash)
-        assertion = AssertionBase(threat_score=threat_score, is_coordinated_campaign=is_coordinated, lookalikes=lookalikes, technical_flags=technical_flags)
+        assertion = AssertionBase(threat_score=threat_score, threat_score_breakdown=threat_score_breakdown, is_coordinated_campaign=is_coordinated, lookalikes=lookalikes, technical_flags=technical_flags)
         evidence = EvidenceCustodyBase(sha256_hash=sha256_hash)
         
         return {

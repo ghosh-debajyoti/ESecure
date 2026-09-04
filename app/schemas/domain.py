@@ -7,6 +7,7 @@ from pydantic import BaseModel
 class TraceBase(BaseModel):
     headers: dict[str, Any]
     relay_route: list[dict[str, Any]] = []
+    body: str | None = None
 
 class PropertyBase(BaseModel):
     indicators: list[dict[str, Any]] = []
@@ -16,6 +17,7 @@ class PropertyBase(BaseModel):
 
 class AssertionBase(BaseModel):
     threat_score: float
+    threat_score_breakdown: dict[str, Any] = {}
     is_coordinated_campaign: bool = False
     lookalikes: list[dict[str, Any]] = []
     technical_flags: dict[str, Any] = {}

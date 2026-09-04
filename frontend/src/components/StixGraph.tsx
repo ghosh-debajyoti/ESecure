@@ -18,7 +18,7 @@ interface GraphData {
 }
 
 export default function StixGraph({ data }: { data: GraphData }) {
-  const initialNodes = data.nodes.map((n, i) => ({
+  const initialNodes = (data?.nodes || []).map((n, i) => ({
     ...n,
     position: { x: (i % 3) * 200, y: Math.floor(i / 3) * 150 },
     style: {
@@ -33,7 +33,7 @@ export default function StixGraph({ data }: { data: GraphData }) {
     }
   }));
 
-  const initialEdges = data.edges.map((e) => ({
+  const initialEdges = (data?.edges || []).map((e) => ({
     ...e,
     animated: true,
     style: { stroke: "#ef4444" },

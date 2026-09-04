@@ -39,11 +39,11 @@ class ThreatScoringService:
             print(f"Error during model classification: {e}")
             return 0.0
 
-    def generate_final_score(self) -> float:
+    def generate_final_score(self) -> tuple[float, float, float]:
         model_score = self.get_model_score()
 
         # Combine model score and technical flags
         final_score = model_score + self.technical_flags_score
 
         # Normalize to 0-100
-        return min(max(final_score, 0.0), 100.0)
+        return min(max(final_score, 0.0), 100.0), model_score, self.technical_flags_score
