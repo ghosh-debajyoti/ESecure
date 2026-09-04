@@ -38,8 +38,12 @@ class RelayService:
                     "ip_address": ip,
                     "server_name": server_name,
                     "country": None,
+                    "region": None,
                     "city": None,
                     "isp": None,
+                    "asn": None,
+                    "enrichment_status": "not_extracted" if not ip else "unavailable",
+                    "enrichment_reason": "No IP address was extracted from this Received header." if not ip else "The enrichment lookup has not completed.",
                     "timestamp": dt.isoformat() if dt else ts_str,
                     "delay_seconds": 0.0
                 }
@@ -47,15 +51,33 @@ class RelayService:
                 if ip:
                     try:
                         ip_obj = ipaddress.ip_address(ip)
-                        if not ip_obj.is_private and not ip_obj.is_loopback:
-                            resp = await client.get(f"http://ip-api.com/json/{ip}?fields=status,country,city,isp")
-                            if resp.status_code == 200:
+                        if not ip_obj.is_global:
+                            hop["enrichment_status"] = "no_data"
+                            hop["enrichment_reason"] = "The extracted address is not globally routable, so no external enrichment was requested."
+                        else:
+                            resp = await client.get(f"http://ip-api.com/json/{ip}?fields=status,country,regionName,city,isp,as")
+                            if resp.status_code != 200:
+                                hop["enrichment_status"] = "unavailable"
+                                hop["enrichment_reason"] = "The enrichment service did not complete the lookup."
+                            else:
                                 data = resp.json()
                                 if data.get("status") == "success":
                                     hop["country"] = data.get("country")
+                                    hop["region"] = data.get("regionName")
                                     hop["city"] = data.get("city")
                                     hop["isp"] = data.get("isp")
+                                    hop["asn"] = data.get("as")
+                                    hop["enrichment_status"] = "available"
+                                    hop["enrichment_reason"] = "Enrichment data was returned for this address."
+                                else:
+                                    hop["enrichment_status"] = "no_data"
+                                    hop["enrichment_reason"] = "No enrichment data was returned for this address."
+                    except ValueError:
+                        hop["enrichment_status"] = "no_data"
+                        hop["enrichment_reason"] = "The extracted value is not a valid IP address."
                     except Exception as e:
+                        hop["enrichment_status"] = "unavailable"
+                        hop["enrichment_reason"] = "The enrichment service could not be reached for this address."
                         print(f"GeoIP failed for {ip}: {e}")
                 
                 routes.append(hop)

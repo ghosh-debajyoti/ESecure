@@ -63,6 +63,15 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
         infra_intel = {}
         if parsed.relay_route and parsed.relay_route[0].get("ip"):
             infra_intel = IntelService.query_ip(parsed.relay_route[0]["ip"])
+        elif parsed.relay_route and parsed.relay_route[0].get("ip_address"):
+            first_hop = parsed.relay_route[0]
+            infra_intel = {
+                key: first_hop[key]
+                for key in ("ip_address", "asn", "isp", "country", "region")
+                if first_hop.get(key)
+            }
+            if infra_intel.get("ip_address"):
+                infra_intel["ip"] = infra_intel.pop("ip_address")
             
         from_dom = re.search(r'@([\w.-]+)', str(parsed.headers.get("From") or ""))
         reply_dom = re.search(r'@([\w.-]+)', str(parsed.headers.get("Reply-To") or ""))

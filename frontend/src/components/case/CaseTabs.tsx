@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertTriangle, ShieldCheck, Zap, Globe, FileWarning, Search, Key, Network, Activity, Database, Mail, MapPin, Target, Eye, ChevronRight, Share2, EyeOff } from 'lucide-react';
 import StixGraph from '@/components/StixGraph';
@@ -47,6 +47,14 @@ export default function CaseTabs({ data }: { data: any }) {
   const senderDomain = trace?.headers?.From?.split('@').pop()?.replace('>', '') || "Unknown";
   const replyDomain = trace?.headers?.['Reply-To']?.split('@').pop()?.replace('>', '') || "None";
   const hasLookalike = lookalikes.length > 0;
+  const relayHops = trace?.relay_route || [];
+  const originHops = relayHops.filter((hop: any) => hop.ip_address || hop.ip);
+  const originIps = Array.from(new Set(originHops.map((hop: any) => hop.ip_address || hop.ip))) as string[];
+  const originRecords = originIps.map((ip) => originHops.find((hop: any) => (hop.ip_address || hop.ip) === ip));
+  const enrichedHops = originRecords.filter((hop: any) => hop?.enrichment_status === 'available' || hop?.asn || hop?.isp || hop?.country || hop?.region);
+  const selectedOriginIp = originIps[0] || null;
+  const [selectedIp, setSelectedIp] = useState<string | null>(selectedOriginIp);
+  const selectedHop = originRecords.find((hop: any) => (hop?.ip_address || hop?.ip) === (selectedIp || selectedOriginIp));
 
   return (
     <Tabs defaultValue="overview" className="w-full">
@@ -421,36 +429,68 @@ export default function CaseTabs({ data }: { data: any }) {
       {/* 6. INTELLIGENCE TAB */}
       <TabsContent value="intelligence" className="mt-0 outline-none space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="border border-slate-800 bg-slate-900/40 rounded-xl overflow-hidden">
-            <div className="border-b border-slate-800 p-4 bg-slate-900">
-              <h3 className="text-sm font-medium text-slate-200">Origin IP Intelligence</h3>
+          <div className="border border-slate-800 bg-slate-900/40 rounded-xl overflow-hidden md:col-span-2">
+            <div className="border-b border-slate-800 p-4 bg-slate-900 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-medium text-slate-200 uppercase tracking-wider">Origin Infrastructure</h3>
+                <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-1">Received-header evidence and enrichment</p>
+              </div>
+              {originIps.length > 0 && (
+                <div className="flex gap-4 text-[10px] font-mono uppercase tracking-widest">
+                  <span className="text-slate-400">Extracted IPs <strong className="text-indigo-300">{originIps.length}</strong></span>
+                  <span className="text-emerald-400">Enriched <strong>{enrichedHops.length}</strong></span>
+                  <span className="text-amber-400">Unenriched <strong>{originIps.length - enrichedHops.length}</strong></span>
+                </div>
+              )}
             </div>
-            <div className="p-6">
-              {data.infrastructure && Object.keys(data.infrastructure).length > 0 ? (
-                <div className="space-y-6">
-                  <div>
-                    <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Target IP</div>
-                    <div className="text-lg font-mono text-indigo-400">{data.infrastructure.ip}</div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">ISP / Organization</div>
-                      <div className="text-sm text-slate-300 font-mono">{data.infrastructure.org || "Unknown"}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">ASN</div>
-                      <div className="text-sm text-slate-300 font-mono">{data.infrastructure.asn || "Unknown"}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Location</div>
-                      <div className="text-sm text-slate-300">{data.infrastructure.city ? `${data.infrastructure.city}, ` : ''}{data.infrastructure.country || "Unknown"}</div>
-                    </div>
-                  </div>
+            <div className="p-4">
+              {originIps.length === 0 ? (
+                <div className="py-2">
+                  <div className="text-xs font-mono uppercase tracking-widest text-slate-300">No origin IP address was extracted from the available email evidence.</div>
+                  <div className="text-xs text-slate-500 mt-2">Origin IP intelligence cannot be determined from this evidence.</div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-slate-500">
-                  <Globe className="w-8 h-8 mb-2 opacity-20" />
-                  <div className="text-sm">No origin IP infrastructure intelligence available.</div>
+                <div className="grid grid-cols-1 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.2fr)] gap-5">
+                  <div>
+                    <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-3">Relay Path</div>
+                    <div className="space-y-1">
+                      {relayHops.map((hop: any, index: number) => {
+                        const ip = hop.ip_address || hop.ip;
+                        const isSelected = ip && selectedIp === ip;
+                        return (
+                          <React.Fragment key={`${ip || 'no-ip'}-${hop.hop_number || index}`}>
+                            <button type="button" disabled={!ip} onClick={() => ip && setSelectedIp(ip)} className={`w-full text-left border p-3 transition-colors ${isSelected ? 'border-indigo-500/60 bg-indigo-500/10' : 'border-slate-800 bg-slate-950/50'} ${ip ? 'hover:border-slate-700' : 'cursor-default opacity-70'}`}>
+                              <span className="block text-[10px] font-mono uppercase tracking-widest text-slate-500">Hop {hop.hop_number || index + 1}</span>
+                              <span className={`block mt-1 text-sm font-mono break-all ${ip ? 'text-indigo-300' : 'text-slate-500'}`}>{ip || 'IP not extracted'}</span>
+                              {hop.server_name && <span className="block mt-1 text-[10px] font-mono text-slate-500 truncate">HELO {hop.server_name}</span>}
+                            </button>
+                            {index < relayHops.length - 1 && <div className="text-center text-slate-600 text-xs">↓</div>}
+                          </React.Fragment>
+                        );
+                      })}
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-slate-600 pt-1">Final received-header hop</div>
+                    </div>
+                  </div>
+                  <div className="border border-slate-800 bg-slate-950/50 p-4">
+                    <div className="flex items-center justify-between gap-3 mb-4">
+                      <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Selected Origin IP</div>
+                      <span className={`text-[10px] font-mono uppercase tracking-widest ${selectedHop?.enrichment_status === 'available' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        {selectedHop?.enrichment_status === 'available' ? 'Enrichment available' : selectedHop?.enrichment_status === 'no_data' ? 'No enrichment data returned' : 'Enrichment unavailable'}
+                      </span>
+                    </div>
+                    <div className="text-lg font-mono text-indigo-300 mb-4">{selectedIp}</div>
+                    {selectedHop?.enrichment_status !== 'available' && !selectedHop?.asn && !selectedHop?.isp && !selectedHop?.country && !selectedHop?.region && (
+                      <p className="text-xs text-slate-400 border-l-2 border-amber-500/50 pl-3">{selectedHop?.enrichment_reason || (selectedHop?.enrichment_status === 'no_data' ? 'No enrichment data was returned for this address.' : 'The enrichment lookup could not be completed for this address.')}</p>
+                    )}
+                    <div className="grid grid-cols-2 gap-x-5 gap-y-4 mt-4">
+                      {([['ASN', selectedHop?.asn], ['ISP', selectedHop?.isp], ['Country', selectedHop?.country], ['Region', selectedHop?.region]] as const).map(([label, value]) => (
+                        <div key={label}>
+                          <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">{label}</div>
+                          <div className="text-xs font-mono text-slate-300 break-words">{value || 'Unavailable'}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -545,9 +585,16 @@ export default function CaseTabs({ data }: { data: any }) {
       <TabsContent value="campaign" className="mt-0 outline-none space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 border border-slate-800 bg-slate-900/40 rounded-xl p-8">
-            <h2 className="text-lg font-medium text-slate-200 mb-6 flex items-center gap-2">
-              <Network className="w-5 h-5 text-indigo-400" /> Structural Locality Sensitive Hash
-            </h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-medium text-slate-200 flex items-center gap-2">
+                <Network className="w-5 h-5 text-indigo-400" /> Structural Locality Sensitive Hash
+              </h2>
+              {assertion?.is_coordinated_campaign && (
+                <Link href={`/campaigns/1`} className="text-xs font-mono bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded transition-colors flex items-center gap-2">
+                  <Target className="w-4 h-4" /> Manage Campaign DNA
+                </Link>
+              )}
+            </div>
             <div className="space-y-6">
               <div>
                 <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-2">TLSH Signature</div>
