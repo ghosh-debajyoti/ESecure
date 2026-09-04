@@ -24,7 +24,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <Hexagon className="w-6 h-6 text-indigo-400" />
             </div>
             <div>
-              <h1 className="font-bold text-slate-100 tracking-wider">AAROHAN</h1>
+              <h1 className="font-bold text-slate-100 tracking-wider">ESECURE-AI</h1>
               <p className="text-[10px] text-slate-500 uppercase tracking-widest">Forensics Console</p>
             </div>
           </div>

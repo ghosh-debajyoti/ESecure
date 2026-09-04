@@ -603,7 +603,7 @@ export default function CaseTabs({ data }: { data: any }) {
                 </div>
               </div>
               <p className="text-sm text-slate-400">
-                TLSH generates a hash where structurally similar files have mathematically similar hashes. This is used by AAROHAN to detect mutated phishing variants from the same actor cluster.
+                TLSH generates a hash where structurally similar files have mathematically similar hashes. This is used by ESECURE-AI to detect mutated phishing variants from the same actor cluster.
               </p>
             </div>
           </div>

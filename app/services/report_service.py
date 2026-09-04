@@ -34,7 +34,7 @@ class ReportService:
         elements = []
         
         # 1. Header
-        elements.append(Paragraph("AAROHAN CYBER FORENSICS - EVIDENTIARY REPORT", title_style))
+        elements.append(Paragraph("ESECURE-AI CYBER FORENSICS - EVIDENTIARY REPORT", title_style))
         elements.append(Spacer(1, 0.2 * inch))
         
         # Helper to safely get nested values
