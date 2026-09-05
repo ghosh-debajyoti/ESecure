@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { Save, CheckCircle, AlertTriangle } from 'lucide-react';
 
 interface CampaignDNAFormProps {
@@ -49,7 +49,7 @@ export default function CampaignDNAForm({ campaignId, initialData, onSaved }: Ca
     setSuccess(false);
     
     try {
-      const res = await axios.patch(`http://127.0.0.1:8000/api/campaigns/${campaignId}/dna`, {
+      const res = await api.patch(`/api/campaigns/${campaignId}/dna`, {
         dna: dna
       });
       setSuccess(true);
@@ -58,7 +58,7 @@ export default function CampaignDNAForm({ campaignId, initialData, onSaved }: Ca
       }
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to save Campaign DNA");
+      setError(err.response?.data?.detail || "Analysis service unavailable or failed to save Campaign DNA");
     } finally {
       setSaving(false);
     }

@@ -2,9 +2,10 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
+import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { Upload, ChevronRight, AlertTriangle, ShieldCheck, Clock, FolderOpen, Mail, ShieldAlert, Globe, Activity, Network, Database } from 'lucide-react';
+import { Upload, ChevronRight, AlertTriangle, ShieldCheck, Clock, FolderOpen, Mail, ShieldAlert, Globe, Activity, Network, Database, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CommandCenter() {
@@ -19,17 +20,21 @@ export default function CommandCenter() {
   const [isDragActive, setIsDragActive] = useState(false);
   const [recentCases, setRecentCases] = useState<any[]>([]);
   const [casesLoading, setCasesLoading] = useState(true);
+  const [backendUnavailable, setBackendUnavailable] = useState(false);
 
   useEffect(() => {
     fetchRecentCases();
   }, []);
 
   const fetchRecentCases = async () => {
+    setCasesLoading(true);
     try {
-      const res = await axios.get("http://127.0.0.1:8000/api/v1/cases");
+      const res = await api.get("/api/v1/cases");
       setRecentCases(res.data);
+      setBackendUnavailable(false);
     } catch (err: any) {
       console.warn("Failed to load cases: Backend unreachable or returned an error.");
+      setBackendUnavailable(true);
     } finally {
       setCasesLoading(false);
     }
@@ -63,7 +68,7 @@ export default function CommandCenter() {
         step++;
         setProgressStep(step);
       }
-    }, 400); // Fast simulation for visual feedback
+    }, 400);
     return interval;
   };
 
@@ -78,21 +83,23 @@ export default function CommandCenter() {
     formData.append("file", file);
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/api/v1/analyze", formData, {
+      const res = await api.post("/api/v1/analyze", formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
       clearInterval(progressInterval);
       setProgressStep(9);
       setAnalysisResult(res.data);
       setAnalysisStatus('complete');
+      setBackendUnavailable(false);
       toast.success("Investigation created successfully.");
       fetchRecentCases();
     } catch (err: any) {
       clearInterval(progressInterval);
       console.error(err);
       let errorMessage = "An unexpected error occurred during analysis.";
-      if (err.code === "ERR_NETWORK") {
-        errorMessage = "Backend server is unreachable. Please ensure the API is running.";
+      if (err.code === "ERR_NETWORK" || !err.response) {
+        errorMessage = "Analysis service unavailable. Please click Retry Connection when service is restored.";
+        setBackendUnavailable(true);
       } else if (err.response?.status >= 500) {
         errorMessage = `Server Error (${err.response.status}): The threat engine failed to process the file.`;
       } else if (err.response?.data?.detail) {
@@ -116,13 +123,72 @@ export default function CommandCenter() {
     "Creating forensic case"
   ];
 
+  const handleLoadSample = (type: 'phishing' | 'benign') => {
+    let content = "";
+    let filename = "";
+    if (type === 'phishing') {
+      filename = "sample_phishing.eml";
+      content = `From: Security Team <admin@paypal-security.com>\nReply-To: attacker@evil-phish-domain.com\nTo: victim@company.com\nSubject: URGENT: Account Security Verification Required\nDate: Thu, 03 Sep 2026 10:15:00 +0000\nMessage-ID: <suspicious-999@paypal-security.com>\nAuthentication-Results: mx.company.com; dmarc=fail; spf=fail; dkim=fail\nReceived: from gateway.company.com ([142.250.190.46]) by mx.company.com; Thu, 03 Sep 2026 10:15:00 +0000\nReceived: from unknown-attacker.net ([45.33.32.156]) by gateway.company.com; Thu, 03 Sep 2026 10:14:50 +0000\n\nDear Customer,\n\nWe detected unauthorized access attempts on your account. Click below to verify identity:\nhttp://paypal-security-update.com/login-verify\n\nRegards,\nSecurity Operations`;
+    } else {
+      filename = "sample_benign.eml";
+      content = `From: Alice Smith <alice@acmecorp.com>\nReply-To: alice@acmecorp.com\nTo: Bob Jones <bob@acmecorp.com>\nSubject: Q4 Project Roadmap Discussion\nDate: Thu, 03 Sep 2026 11:00:00 +0000\nMessage-ID: <valid-msg-777@acmecorp.com>\nAuthentication-Results: mx.company.com; dmarc=pass; spf=pass; dkim=pass\nReceived: from mail.acmecorp.com ([198.51.100.12]) by mx.company.com; Thu, 03 Sep 2026 11:00:00 +0000\n\nHi Bob,\n\nHere is the quarterly project roadmap review. Everything is progressing according to schedule.\n\nBest regards,\nAlice`;
+    }
+    const sampleFile = new File([content], filename, { type: "text/plain" });
+    setFile(sampleFile);
+    toast.info(`Loaded ${type} sample email evidence.`);
+  };
+
+  const getSeverityBadge = (score: number) => {
+    if (score >= 80) return { label: 'CRITICAL', color: 'bg-rose-500/10 text-rose-400 border-rose-500/30' };
+    if (score >= 60) return { label: 'HIGH', color: 'bg-orange-500/10 text-orange-400 border-orange-500/30' };
+    if (score >= 40) return { label: 'MODERATE', color: 'bg-amber-500/10 text-amber-400 border-amber-500/30' };
+    if (score >= 20) return { label: 'GUARDED', color: 'bg-sky-500/10 text-sky-400 border-sky-500/30' };
+    return { label: 'LOW', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' };
+  };
+
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-12 animate-in fade-in duration-500">
+    <div className="p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500">
       
       {/* Header */}
       <div>
         <h1 className="text-3xl font-medium tracking-tight text-slate-100">Investigation Command Center</h1>
-        <p className="text-slate-500 mt-2 text-sm">Upload email evidence to trace infrastructure, correlate campaigns, and build attack graphs.</p>
+        <p className="text-slate-500 mt-2 text-sm">Upload raw email evidence (.eml) to inspect headers, trace infrastructure, correlate campaigns, and generate forensic reports.</p>
+      </div>
+
+      {backendUnavailable && (
+        <div className="border border-rose-500/30 bg-rose-500/10 rounded-xl p-4 flex items-center justify-between animate-in fade-in duration-300">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+            <div>
+              <h4 className="text-sm font-medium text-rose-200">Analysis service unavailable</h4>
+              <p className="text-xs text-rose-300/80">The forensic backend engine is currently offline or unreachable. Please check connection and retry.</p>
+            </div>
+          </div>
+          <button 
+            onClick={fetchRecentCases} 
+            className="px-3 py-1.5 text-xs font-medium bg-rose-500/20 text-rose-200 border border-rose-500/40 rounded-lg hover:bg-rose-500/30 transition-colors flex items-center gap-1.5 shrink-0"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Retry Connection
+          </button>
+        </div>
+      )}
+
+      {/* Integrated Workflow Bar */}
+      <div className="border border-slate-800 bg-slate-900/40 rounded-xl p-4 flex items-center justify-between px-6 overflow-x-auto text-[10px] font-mono tracking-widest text-slate-400 uppercase">
+        <div className="flex items-center gap-2 font-bold text-indigo-400"><span>1. UPLOAD EVIDENCE</span></div>
+        <span className="text-slate-600">→</span>
+        <div className="flex items-center gap-2"><span>2. FORENSIC ANALYSIS</span></div>
+        <span className="text-slate-600">→</span>
+        <div className="flex items-center gap-2"><span>3. THREAT ASSESSMENT</span></div>
+        <span className="text-slate-600">→</span>
+        <div className="flex items-center gap-2"><span>4. NETWORK INTEL</span></div>
+        <span className="text-slate-600">→</span>
+        <div className="flex items-center gap-2"><span>5. CAMPAIGN DNA</span></div>
+        <span className="text-slate-600">→</span>
+        <div className="flex items-center gap-2"><span>6. ATTACK GRAPH</span></div>
+        <span className="text-slate-600">→</span>
+        <div className="flex items-center gap-2 text-emerald-400"><span>7. EVIDENTIARY REPORT</span></div>
       </div>
 
       {/* Primary Investigation Zone */}
@@ -133,6 +199,14 @@ export default function CommandCenter() {
           <div className="border border-slate-800 bg-slate-900/50 rounded-xl overflow-hidden shadow-sm flex flex-col h-full">
             <div className="p-4 border-b border-slate-800/60 bg-slate-900 flex justify-between items-center">
               <span className="text-xs font-mono text-slate-400 uppercase tracking-widest">Start Investigation</span>
+              <div className="flex gap-2">
+                <button onClick={() => handleLoadSample('phishing')} className="px-2 py-1 text-[10px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded hover:bg-rose-500/20 transition-colors">
+                  + Phishing Sample
+                </button>
+                <button onClick={() => handleLoadSample('benign')} className="px-2 py-1 text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded hover:bg-emerald-500/20 transition-colors">
+                  + Benign Sample
+                </button>
+              </div>
             </div>
             
             <div className="p-6 flex-1 flex flex-col">
@@ -164,7 +238,7 @@ export default function CommandCenter() {
                   </div>
 
                   <p className="text-xs text-slate-500 text-center mt-6">
-                    Analyze headers, authentication, infrastructure, indicators, campaign similarity and attack relationships.
+                    Preserves original evidence. Evaluates headers, authentication alignment, relay routes, risk factors, and attack relationships.
                   </p>
 
                   {file && (
@@ -173,7 +247,7 @@ export default function CommandCenter() {
                         onClick={handleUpload}
                         className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-sm font-medium transition-colors"
                       >
-                        Initiate Analysis
+                        Initiate Threat Forensics
                       </button>
                     </div>
                   )}
@@ -282,6 +356,9 @@ export default function CommandCenter() {
                           <span className={`font-mono text-xl font-bold ${analysisResult?.assertion?.threat_score >= 80 ? 'text-rose-400' : 'text-amber-400'}`}>
                             {Math.round(analysisResult?.assertion?.threat_score)} / 100
                           </span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-widest border ${getSeverityBadge(analysisResult?.assertion?.threat_score || 0).color}`}>
+                            {getSeverityBadge(analysisResult?.assertion?.threat_score || 0).label}
+                          </span>
                         </div>
                       ) : 'Not available'}
                     </div>
@@ -371,50 +448,48 @@ export default function CommandCenter() {
                     <th className="py-3 px-4 font-normal">Case ID</th>
                     <th className="py-3 px-4 font-normal">Status</th>
                     <th className="py-3 px-4 font-normal">Subject</th>
-                    <th className="py-3 px-4 font-normal">Threat Score</th>
+                    <th className="py-3 px-4 font-normal">Threat Score & Severity</th>
                     <th className="py-3 px-4 font-normal">Date</th>
                     <th className="py-3 px-4 font-normal"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {recentCases.slice(0, 5).map((c) => (
-                    <tr key={c.case_number} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors group">
-                      <td className="py-3 px-4">
-                        <Link href={`/cases/${c.case_number}`} className="text-sm font-mono text-indigo-400 hover:underline">
-                          {c.case_number}
-                        </Link>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-widest bg-slate-800 text-slate-400">
-                          {c.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="text-sm text-slate-200 truncate max-w-[200px]">{c.subject || "(No Subject)"}</div>
-                        <div className="text-xs text-slate-500 truncate max-w-[200px]">{c.sender || "Unknown Sender"}</div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          {c.threat_score >= 80 ? (
-                            <AlertTriangle className="w-4 h-4 text-rose-500" />
-                          ) : c.threat_score >= 40 ? (
-                            <AlertTriangle className="w-4 h-4 text-amber-500" />
-                          ) : (
-                            <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                          )}
-                          <span className="text-sm font-mono text-slate-300">{Math.round(c.threat_score)}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-slate-400">
-                        {c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <Link href={`/cases/${c.case_number}`} className="inline-flex opacity-0 group-hover:opacity-100 transition-opacity">
-                          <ChevronRight className="w-5 h-5 text-slate-500 hover:text-slate-300" />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
+                  {recentCases.slice(0, 5).map((c) => {
+                    const badge = getSeverityBadge(c.threat_score || 0);
+                    return (
+                      <tr key={c.case_number} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors group">
+                        <td className="py-3 px-4">
+                          <Link href={`/cases/${c.case_number}`} className="text-sm font-mono text-indigo-400 hover:underline">
+                            {c.case_number}
+                          </Link>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-widest bg-slate-800 text-slate-400">
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="text-sm text-slate-200 truncate max-w-[200px]">{c.subject || "(No Subject)"}</div>
+                          <div className="text-xs text-slate-500 truncate max-w-[200px]">{c.sender || "Unknown Sender"}</div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-widest border ${badge.color}`}>
+                              {badge.label} ({Math.round(c.threat_score)})
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-slate-400">
+                          {c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <Link href={`/cases/${c.case_number}`} className="inline-flex opacity-0 group-hover:opacity-100 transition-opacity">
+                            <ChevronRight className="w-5 h-5 text-slate-500 hover:text-slate-300" />
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}

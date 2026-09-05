@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { ShieldAlert, Trash2, Plus, AlertCircle, Activity, Server, Hash, Link as LinkIcon, Mail } from 'lucide-react';
 
 interface IOC {
@@ -44,7 +44,7 @@ export default function IOCManager({ campaignId }: IOCManagerProps) {
 
   const fetchIOCs = async () => {
     try {
-      const res = await axios.get(`http://127.0.0.1:8000/api/iocs/campaign/${campaignId}`);
+      const res = await api.get(`/api/iocs/campaign/${campaignId}`);
       setIocs(res.data);
       setError(null);
     } catch (err: any) {
@@ -64,7 +64,7 @@ export default function IOCManager({ campaignId }: IOCManagerProps) {
 
     setSubmitting(true);
     try {
-      await axios.post('http://127.0.0.1:8000/api/iocs/', {
+      await api.post('/api/iocs/', {
         type,
         value,
         severity,
@@ -85,7 +85,7 @@ export default function IOCManager({ campaignId }: IOCManagerProps) {
 
   const handleDeleteIOC = async (id: number) => {
     try {
-      await axios.delete(`http://127.0.0.1:8000/api/iocs/${id}`);
+      await api.delete(`/api/iocs/${id}`);
       setIocs(iocs.filter(ioc => ioc.id !== id));
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to delete IOC');

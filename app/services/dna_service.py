@@ -20,7 +20,13 @@ class DnaService:
         if not current_hash:
             return 0.0, False
             
-        historical_evidences = db.query(EmailEvidence).filter(EmailEvidence.tlsh_hash.isnot(None)).all()
+        from app.models.domain import Case
+        historical_evidences = (
+            db.query(EmailEvidence)
+            .join(Case, EmailEvidence.case_id == Case.id)
+            .filter(EmailEvidence.tlsh_hash.isnot(None), Case.threat_score >= 40.0)
+            .all()
+        )
         max_similarity_score = 0.0
         
         for ev in historical_evidences:
@@ -35,3 +41,4 @@ class DnaService:
                 
         is_coordinated = max_similarity_score > 80
         return max_similarity_score, is_coordinated
+

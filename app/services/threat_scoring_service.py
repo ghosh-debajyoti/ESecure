@@ -10,6 +10,20 @@ except Exception as e:
     phishing_classifier = None
 
 
+def get_severity_label(score: float) -> str:
+    score = max(0.0, min(100.0, float(score)))
+    if score >= 80.0:
+        return "CRITICAL"
+    elif score >= 60.0:
+        return "HIGH"
+    elif score >= 40.0:
+        return "MODERATE"
+    elif score >= 20.0:
+        return "GUARDED"
+    else:
+        return "LOW"
+
+
 class ThreatScoringService:
     def __init__(self, body: str, technical_flags_score: float):
         self.body = body
@@ -24,26 +38,36 @@ class ThreatScoringService:
             text_to_analyze = self.body[:2000]
             result = phishing_classifier(text_to_analyze)[0]
 
-            label = result["label"].lower()
-            score = result["score"]
+            label = str(result["label"]).lower()
+            score = float(result["score"])
 
             # Convert model output to a 0-100 maliciousness score
-            if "phish" in label or "malicious" in label:
-                return score * 100
-            elif "safe" in label or "benign" in label:
-                return (1 - score) * 100
+            # distilbert binary classification outputs LABEL_1 (phish/malicious) or LABEL_0 (benign/safe)
+            if "label_1" in label or "phish" in label or "malicious" in label:
+                return score * 100.0
+            elif "label_0" in label or "safe" in label or "benign" in label:
+                return (1.0 - score) * 100.0
             else:
-                # Fallback if label structure is unknown
-                return score * 100
+                return score * 100.0
         except Exception as e:
             print(f"Error during model classification: {e}")
             return 0.0
 
-    def generate_final_score(self) -> tuple[float, float, float]:
+
+    def generate_final_score(self, risk_increasers: list = None, risk_reducers: list = None) -> tuple[float, float, float]:
         model_score = self.get_model_score()
+        
+        increasers_sum = sum(item.get("score", 0) for item in (risk_increasers or []))
+        reducers_sum = sum(abs(item.get("score", 0)) for item in (risk_reducers or []))
 
-        # Combine model score and technical flags
-        final_score = model_score + self.technical_flags_score
+        # Base technical score combines flags
+        tech_score = self.technical_flags_score
 
-        # Normalize to 0-100
-        return min(max(final_score, 0.0), 100.0), model_score, self.technical_flags_score
+        # Combine ML model weight (40%), technical flags & risk increasers - risk reducers
+        combined = (model_score * 0.4) + (tech_score * 0.6) + (increasers_sum * 0.5) - reducers_sum
+
+        final_score = min(max(combined, 0.0), 100.0)
+
+        return round(final_score, 1), round(model_score, 1), round(tech_score, 1)
+
+

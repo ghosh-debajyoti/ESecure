@@ -15,7 +15,7 @@ from app.services.forensic_service import ForensicEngineService
 from app.services.graph_service import GraphService
 from app.services.intel_service import IntelService
 from app.services.parser_service import EmailParserService
-from app.services.threat_scoring_service import ThreatScoringService
+from app.services.threat_scoring_service import ThreatScoringService, get_severity_label
 from app.services.translator_service import TranslatorService
 from app.services.threat_intel_service import ThreatIntelService
 from app.database import get_db as get_pg_db
@@ -45,9 +45,10 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
         # Override simple attachments with forensic inspected attachments
         parsed.attachments = AttachmentService.inspect_attachments(parser.msg)
         
-        # 2. Forensics & Threat Score
+        # 2. Forensics & Alignment
         alignment = ForensicEngineService(parsed.headers).evaluate_alignment()
-        final_score, model_score, tech_score = ThreatScoringService(parsed.body, alignment["technical_flag_score"]).generate_final_score()
+        risk_increasers = list(alignment.get("risk_increasers", []))
+        risk_reducers = list(alignment.get("risk_reducers", []))
         
         # 3. TLSH DNA
         tlsh_hash = DnaService.generate_hash(parsed.body)
@@ -57,8 +58,19 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
         attachment_penalty = 0.0
         if any(a.get("is_suspicious", False) for a in parsed.attachments):
             attachment_penalty = 40.0
-            final_score = min(final_score + attachment_penalty, 100.0)
-        
+            risk_increasers.append({
+                "factor": "Malicious attachment payload identified",
+                "score": 40,
+                "category": "Payload"
+            })
+        else:
+            if parsed.attachments:
+                risk_reducers.append({
+                    "factor": "Attachments scanned cleanly without execution risks",
+                    "score": -5,
+                    "category": "Payload"
+                })
+
         # 4. Intelligence
         infra_intel = {}
         if parsed.relay_route and parsed.relay_route[0].get("ip"):
@@ -80,14 +92,37 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
             res = IntelService.check_lookalike_domain(from_dom.group(1), reply_dom.group(1))
             if res.get("is_lookalike"):
                 lookalikes.append(res)
+                risk_increasers.append({
+                    "factor": f"Lookalike domain detected ({from_dom.group(1)} vs {reply_dom.group(1)})",
+                    "score": 15,
+                    "category": "Identity"
+                })
 
         parsed.indicators = await ThreatIntelService.enrich_indicators(parsed.indicators)
         intel_penalty = 0.0
+        has_flagged_indicator = False
         for ind in parsed.indicators:
             if ind.get("reputation", {}).get("is_flagged", False):
-                intel_penalty = max(intel_penalty, 85.0 - final_score)
-                final_score = max(final_score, 85.0)
-                
+                has_flagged_indicator = True
+                intel_penalty = 35.0
+                risk_increasers.append({
+                    "factor": f"Flagged malicious indicator ({ind.get('type')}: {ind.get('value')})",
+                    "score": 35,
+                    "category": "Intelligence"
+                })
+
+        if not has_flagged_indicator and parsed.indicators:
+            risk_reducers.append({
+                "factor": "Extracted network indicators returned clean threat intelligence status",
+                "score": -5,
+                "category": "Intelligence"
+            })
+
+        # Calculate final threat score & severity label
+        scoring_svc = ThreatScoringService(parsed.body, alignment["technical_flag_score"])
+        final_score, model_score, tech_score = scoring_svc.generate_final_score(risk_increasers, risk_reducers)
+        severity = get_severity_label(final_score)
+
         # 5. Graph
         graph = GraphService.generate_stix_graph(parsed.indicators, infra_intel, is_coordinated, parsed.relay_route, parsed.attachments)
         
@@ -115,6 +150,11 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
         
         if campaign_info.get("is_coordinated_campaign"):
             is_coordinated = True
+            risk_increasers.append({
+                "factor": "Correlated structural similarity match with historical campaign cluster",
+                "score": 15,
+                "category": "Campaign"
+            })
             
         for c in campaign_info.get("lookalikes", []):
             lookalikes.append({"type": "CAMPAIGN_MATCH", "case_number": c})
@@ -148,6 +188,7 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
             mime_boundaries=parsed.mime_boundaries,
             tlsh_hash=tlsh_hash,
             threat_score=final_score,
+            severity=severity,
             threat_score_breakdown={
                 "model_score": model_score,
                 "technical_score": tech_score,
@@ -157,7 +198,9 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
             technical_flags=alignment,
             lookalikes=lookalikes,
             is_coordinated=is_coordinated,
-            sha256_hash=sha256_hash
+            sha256_hash=sha256_hash,
+            risk_increasers=risk_increasers,
+            risk_reducers=risk_reducers
         )
         
         # Update postgres DB with uco_data for reports
@@ -192,16 +235,25 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
         raise HTTPException(status_code=500, detail=f"An error occurred during analysis: {e!s}")
 
 @router.get("/export/{case_number}")
-async def export_pdf_report(case_number: str, pg_db: Session = Depends(get_pg_db)):
+async def export_pdf_report(
+    case_number: str, 
+    explanation_mode: str = "technical", 
+    privacy_mode: bool = False, 
+    pg_db: Session = Depends(get_pg_db)
+):
     try:
         record = pg_db.query(EmailAnalysis).filter_by(case_number=case_number).first()
         if not record or not record.uco_data:
             raise HTTPException(status_code=404, detail="Case data not found")
             
-        pdf_buffer = ReportService.generate_pdf(record.uco_data)
+        pdf_buffer = ReportService.generate_pdf(
+            record.uco_data, 
+            explanation_mode=explanation_mode, 
+            privacy_mode=privacy_mode
+        )
         
         headers = {
-            'Content-Disposition': f'attachment; filename="forensic_report_{case_number}.pdf"'
+            'Content-Disposition': f'attachment; filename="AAROHAN_Forensic_Report_{case_number}.pdf"'
         }
         
         return StreamingResponse(
@@ -214,6 +266,7 @@ async def export_pdf_report(case_number: str, pg_db: Session = Depends(get_pg_db
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to generate report: {e!s}")
+
 
 @router.get("/cases")
 async def get_cases(limit: int = 50, pg_db: Session = Depends(get_pg_db)):

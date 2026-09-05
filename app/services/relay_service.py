@@ -55,7 +55,7 @@ class RelayService:
                             hop["enrichment_status"] = "no_data"
                             hop["enrichment_reason"] = "The extracted address is not globally routable, so no external enrichment was requested."
                         else:
-                            resp = await client.get(f"http://ip-api.com/json/{ip}?fields=status,country,regionName,city,isp,as")
+                            resp = await client.get(f"http://ip-api.com/json/{ip}?fields=status,country,regionName,city,isp,as,lat,lon")
                             if resp.status_code != 200:
                                 hop["enrichment_status"] = "unavailable"
                                 hop["enrichment_reason"] = "The enrichment service did not complete the lookup."
@@ -67,6 +67,8 @@ class RelayService:
                                     hop["city"] = data.get("city")
                                     hop["isp"] = data.get("isp")
                                     hop["asn"] = data.get("as")
+                                    hop["latitude"] = data.get("lat")
+                                    hop["longitude"] = data.get("lon")
                                     hop["enrichment_status"] = "available"
                                     hop["enrichment_reason"] = "Enrichment data was returned for this address."
                                 else:

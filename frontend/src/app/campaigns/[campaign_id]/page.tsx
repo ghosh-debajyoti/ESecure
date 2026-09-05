@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { AlertTriangle, ChevronLeft, Activity, Network } from 'lucide-react';
 import Link from 'next/link';
 import CampaignDNAForm from '@/components/campaign/CampaignDNAForm';
@@ -16,19 +16,19 @@ export default function CampaignDetailsPage() {
 
   const fetchCampaign = async () => {
     try {
-      const res = await axios.get(`http://127.0.0.1:8000/api/campaigns/${campaignId}`);
+      const res = await api.get(`/api/campaigns/${campaignId}`);
       setData(res.data);
     } catch (err: any) {
       if (err.response?.status === 404) {
         // Since this is a new feature, if a campaign doesn't exist, we can auto-create one for demo purposes
         try {
-          const createRes = await axios.post(`http://127.0.0.1:8000/api/campaigns/?name=Campaign%20${campaignId}`);
+          const createRes = await api.post(`/api/campaigns/?name=Campaign%20${campaignId}`);
           setData(createRes.data);
         } catch (createErr: any) {
           setError("Failed to load or create campaign.");
         }
       } else {
-        setError(err.response?.data?.detail || "Failed to load campaign data");
+        setError(err.response?.data?.detail || "Analysis service unavailable or failed to load campaign.");
       }
     } finally {
       setLoading(false);

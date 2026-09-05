@@ -54,9 +54,11 @@ def detect_and_store_campaign(email_data: dict, new_tlsh_hash: str, db_session: 
             try:
                 # Calculate TLSH difference score.
                 # A score < 50 indicates high similarity.
+                # Only flag campaign match if historical record has threat_score >= 40.0
                 diff = tlsh.diff(new_tlsh_hash, record.tlsh_hash)
-                if diff < 50:
+                if diff < 50 and (record.threat_score or 0) >= 40.0:
                     campaign_matches.append(record.case_number)
+
             except Exception:
                 continue
                 

@@ -13,6 +13,17 @@ const navItems = [
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [privacyActive, setPrivacyActive] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem('aarohan_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setPrivacyActive(Boolean(parsed.privacyMode));
+      }
+    } catch (e) {}
+  }, [pathname]);
 
   return (
     <div className="flex h-screen w-full bg-slate-950 text-slate-300 font-sans overflow-hidden">
@@ -24,8 +35,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <Hexagon className="w-6 h-6 text-indigo-400" />
             </div>
             <div>
-              <h1 className="font-bold text-slate-100 tracking-wider">ESECURE-AI</h1>
-              <p className="text-[10px] text-slate-500 uppercase tracking-widest">Forensics Console</p>
+              <h1 className="font-bold text-slate-100 tracking-wider">AAROHAN</h1>
+              <p className="text-[10px] text-slate-500 uppercase tracking-widest">Email Threat Forensics</p>
             </div>
           </div>
           
@@ -50,9 +61,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
         
-        <div className="p-6 border-t border-slate-800/60">
+        <div className="p-6 border-t border-slate-800/60 space-y-3">
+          {privacyActive && (
+            <div className="p-2.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-mono font-bold tracking-widest flex items-center justify-center gap-1.5">
+              PRIVACY MODE ACTIVE
+            </div>
+          )}
           <div className="flex items-center justify-between text-xs text-slate-500 font-mono">
-            <span>SYS_STAT</span>
+            <span>ENGINE_STAT</span>
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               <span className="text-emerald-500/80">ONLINE</span>
@@ -60,6 +76,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </aside>
+
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden bg-slate-950">

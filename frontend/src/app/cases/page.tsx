@@ -1,25 +1,29 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { ShieldCheck, AlertTriangle, ChevronRight, FolderOpen, Search, Filter } from 'lucide-react';
+import { api } from '@/lib/api';
+import { ShieldCheck, AlertTriangle, ChevronRight, FolderOpen, Search, Filter, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CasesPage() {
   const [cases, setCases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [backendUnavailable, setBackendUnavailable] = useState(false);
 
   useEffect(() => {
     fetchCases();
   }, []);
 
   const fetchCases = async () => {
+    setLoading(true);
     try {
-      const res = await axios.get("http://127.0.0.1:8000/api/v1/cases?limit=100");
+      const res = await api.get("/api/v1/cases?limit=100");
       setCases(res.data);
+      setBackendUnavailable(false);
     } catch (err) {
       console.warn("Failed to load cases", err);
+      setBackendUnavailable(true);
     } finally {
       setLoading(false);
     }

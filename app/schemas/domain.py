@@ -17,10 +17,14 @@ class PropertyBase(BaseModel):
 
 class AssertionBase(BaseModel):
     threat_score: float
+    severity: str = "LOW"
     threat_score_breakdown: dict[str, Any] = {}
     is_coordinated_campaign: bool = False
     lookalikes: list[dict[str, Any]] = []
     technical_flags: dict[str, Any] = {}
+    risk_increasers: list[dict[str, Any]] = []
+    risk_reducers: list[dict[str, Any]] = []
+
 
 class EvidenceCustodyBase(BaseModel):
     sha256_hash: str

@@ -1,0 +1,26 @@
+Subject: Quarterly Operations & Project Roadmap Review
+From: Alice Smith <alice@acmecorp.com>
+To: Bob Jones <bob@acmecorp.com>
+Reply-To: alice@acmecorp.com
+Date: Thu, 03 Sep 2026 11:00:00 +0000
+Message-ID: <valid-msg-777@acmecorp.com>
+Authentication-Results: mx.acmecorp.com; spf=pass (sender IP is
+ 198.51.100.12); dkim=pass header.d=acmecorp.com; dmarc=pass
+Received: from mail.acmecorp.com ([198.51.100.12]) by mx.acmecorp.com with
+ ESMTP; Thu, 03 Sep 2026 11:00:00 +0000
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Hi Bob,
+
+Here is the summary for our Q4 operations review. All key milestones and team=
+ objectives are progressing on schedule.
+
+Please let me know if you need any additional reports before the executive me=
+eting tomorrow.
+
+Best regards,
+Alice Smith
+Operations Director
+Acme Corp

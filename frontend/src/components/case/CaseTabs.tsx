@@ -1,12 +1,39 @@
 'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
+
+const NetworkMap = dynamic(() => import('@/components/case/NetworkMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[400px] bg-slate-950/60 rounded-xl border border-slate-800 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs text-slate-500 font-mono">Loading map...</span>
+      </div>
+    </div>
+  ),
+});
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, ShieldCheck, Zap, Globe, FileWarning, Search, Key, Network, Activity, Database, Mail, MapPin, Target, Eye, ChevronRight, Share2, EyeOff } from 'lucide-react';
+import { AlertTriangle, ShieldCheck, Zap, Globe, FileWarning, Search, Key, Network, Activity, Database, Mail, MapPin, Target, Eye, ChevronRight, Share2, EyeOff, BookOpen } from 'lucide-react';
+
 import StixGraph from '@/components/StixGraph';
 import Link from 'next/link';
 
-export default function CaseTabs({ data }: { data: any }) {
+import { maskName, maskEmail } from '@/lib/privacy';
+import { LAYMAN_EXPLANATIONS } from '@/lib/laymanExplanations';
+import ThreatFindings from '@/components/case/ThreatFindings';
+import RecommendedPrecautions from '@/components/case/RecommendedPrecautions';
+
+export default function CaseTabs({ 
+  data, 
+  privacyMode = false, 
+  explanationMode = 'technical' 
+}: { 
+  data: any; 
+  privacyMode?: boolean; 
+  explanationMode?: string; 
+}) {
   const { trace, property, assertion, evidence_custody, graph } = data;
   
   // Helpers
@@ -14,14 +41,9 @@ export default function CaseTabs({ data }: { data: any }) {
   const lookalikes = assertion?.lookalikes || [];
   const scoreBreakdown = assertion?.threat_score_breakdown || {};
   
-  // Derived specific technical factors for "WHY THIS SCORE?"
-  const scoringFactors = [];
-  if (flags.reply_to_mismatch) scoringFactors.push({ reason: "Reply-To mismatch", val: "+20" });
-  if (!flags.dmarc_pass) scoringFactors.push({ reason: "DMARC failure", val: "+15" });
-  if (!flags.spf_pass) scoringFactors.push({ reason: "SPF failure", val: "+10" });
-  if (!flags.dkim_pass) scoringFactors.push({ reason: "DKIM failure", val: "+10" });
-  if (scoreBreakdown.attachment_penalty > 0) scoringFactors.push({ reason: "Malicious Attachment", val: `+${scoreBreakdown.attachment_penalty}` });
-  if (scoreBreakdown.intel_penalty > 0) scoringFactors.push({ reason: "Malicious Indicator Intelligence", val: `+${Math.round(scoreBreakdown.intel_penalty)}` });
+  // Risk factors & reducers from backend (or fallback)
+  const riskIncreasers = assertion?.risk_increasers || [];
+  const riskReducers = assertion?.risk_reducers || [];
 
   const numHops = trace?.relay_route?.length || 0;
   const numIndicators = property?.indicators?.length || 0;
@@ -40,12 +62,16 @@ export default function CaseTabs({ data }: { data: any }) {
   };
   const indCounts = getIndicatorCounts();
 
-  const getMaliciousCount = () => {
-    return property?.indicators?.filter((i: any) => i.reputation?.is_flagged).length || 0;
-  };
+  const rawSender = trace?.headers?.From || "Unknown";
+  const rawReplyTo = trace?.headers?.['Reply-To'] || "None";
+  const rawTo = trace?.headers?.To || "Undisclosed";
 
-  const senderDomain = trace?.headers?.From?.split('@').pop()?.replace('>', '') || "Unknown";
-  const replyDomain = trace?.headers?.['Reply-To']?.split('@').pop()?.replace('>', '') || "None";
+  const displayFrom = privacyMode ? maskName(rawSender) : rawSender;
+  const displayReplyTo = privacyMode ? maskName(rawReplyTo) : rawReplyTo;
+  const displayTo = privacyMode ? maskEmail(rawTo) : rawTo;
+
+  const senderDomain = rawSender.split('@').pop()?.replace('>', '') || "Unknown";
+  const replyDomain = rawReplyTo === "None" ? "None" : (rawReplyTo.split('@').pop()?.replace('>', '') || "None");
   const hasLookalike = lookalikes.length > 0;
   const relayHops = trace?.relay_route || [];
   const originHops = relayHops.filter((hop: any) => hop.ip_address || hop.ip);
@@ -55,6 +81,14 @@ export default function CaseTabs({ data }: { data: any }) {
   const selectedOriginIp = originIps[0] || null;
   const [selectedIp, setSelectedIp] = useState<string | null>(selectedOriginIp);
   const selectedHop = originRecords.find((hop: any) => (hop?.ip_address || hop?.ip) === (selectedIp || selectedOriginIp));
+
+  const threatScore = assertion?.threat_score || 0;
+  const effectiveMode = explanationMode === 'auto'
+    ? (threatScore > 75 ? 'layman' : 'technical')
+    : explanationMode;
+
+  const isLaymanEffective = effectiveMode === 'layman';
+  const [accordionOpen, setAccordionOpen] = useState(false);
 
   return (
     <Tabs defaultValue="overview" className="w-full">
@@ -74,47 +108,67 @@ export default function CaseTabs({ data }: { data: any }) {
       {/* 1. OVERVIEW TAB */}
       <TabsContent value="overview" className="mt-0 outline-none space-y-6">
         
+        {/* LAYMAN / AUTO (>75) MODE: Render Threat Findings & Recommended Precautions at Top */}
+        {isLaymanEffective && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-300">
+            <ThreatFindings data={data} />
+            <RecommendedPrecautions data={data} />
+          </div>
+        )}
+
         {/* Threat Assessment */}
-        <div className="border border-slate-800 bg-slate-900/40 rounded-xl overflow-hidden">
-          <div className="border-b border-slate-800 p-4 bg-slate-900 flex justify-between items-center">
-            <h2 className="text-sm font-medium text-slate-200">Threat Assessment</h2>
-            <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold tracking-widest ${assertion?.threat_score >= 80 ? 'bg-rose-500/10 text-rose-500 border border-rose-500/30' : assertion?.threat_score >= 40 ? 'bg-amber-500/10 text-amber-500 border border-amber-500/30' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30'}`}>
-              SCORE: {Math.round(assertion?.threat_score || 0)} / 100
+        <div className="border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
+          <div className="border-b border-white/10 p-4 bg-white/5 flex justify-between items-center">
+            <h2 className="text-[clamp(1rem,2vw,1.25rem)] font-bold tracking-[0.1em] text-slate-100 uppercase">Threat Risk Assessment</h2>
+            <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold tracking-widest shadow-[0_0_8px_currentColor] ${assertion?.threat_score >= 80 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30' : assertion?.threat_score >= 40 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'}`}>
+              SCORE: {Math.round(assertion?.threat_score || 0)} / 100 ({assertion?.severity || 'LOW'})
             </span>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Risk Increasers */}
             <div className="space-y-4">
-              <h3 className="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">Score Composition</h3>
-              <div className="flex items-center justify-between p-3 bg-slate-800/30 rounded border border-slate-800">
-                <span className="text-sm font-medium text-slate-300">Model / Phishing Score</span>
-                <span className="font-mono text-indigo-400">{Math.round(scoreBreakdown.model_score || 0)}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-slate-800/30 rounded border border-slate-800">
-                <span className="text-sm font-medium text-slate-300">Technical Risk</span>
-                <span className="font-mono text-rose-400">{Math.round(scoreBreakdown.technical_score || 0)}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-slate-800/30 rounded border border-slate-800">
-                <span className="text-sm font-medium text-slate-300">Payload / Intel Penalty</span>
-                <span className="font-mono text-amber-400">{Math.round((scoreBreakdown.attachment_penalty || 0) + (scoreBreakdown.intel_penalty || 0))}</span>
-              </div>
-            </div>
-            <div>
-              <h3 className="text-xs font-mono text-slate-500 uppercase tracking-widest mb-4">Why This Score?</h3>
-              {scoringFactors.length > 0 ? (
-                <div className="space-y-3">
-                  {scoringFactors.map((f, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <span className="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 text-xs font-mono">{f.val}</span>
-                      <span className="text-sm text-slate-300">{f.reason}</span>
+              <h3 className="text-xs font-mono text-rose-400 uppercase tracking-widest mb-2 font-bold flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5" /> RISK INCREASERS (+ Risk Factors)
+              </h3>
+              {riskIncreasers.length > 0 ? (
+                <div className="space-y-2">
+                  {riskIncreasers.map((f: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-slate-900/80 rounded border border-rose-500/20 text-xs">
+                      <span className="text-slate-300">{f.factor}</span>
+                      <span className="font-mono text-rose-400 font-bold ml-2">+{f.score}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-sm text-slate-500 italic">No explicit negative scoring factors identified.</div>
+                <div className="text-xs text-slate-500 italic p-3 bg-slate-950/40 rounded border border-slate-800">
+                  No risk-increasing factors identified.
+                </div>
+              )}
+            </div>
+
+            {/* Risk Reducers */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-mono text-emerald-400 uppercase tracking-widest mb-2 font-bold flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5" /> RISK REDUCERS (- Mitigating Evidence)
+              </h3>
+              {riskReducers.length > 0 ? (
+                <div className="space-y-2">
+                  {riskReducers.map((f: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-slate-900/80 rounded border border-emerald-500/20 text-xs">
+                      <span className="text-slate-300">{f.factor}</span>
+                      <span className="font-mono text-emerald-400 font-bold ml-2">{f.score}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs text-slate-500 italic p-3 bg-slate-950/40 rounded border border-slate-800">
+                  No risk-reducing evidence identified.
+                </div>
               )}
             </div>
           </div>
         </div>
+
 
         {/* Forensic Snapshot */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -147,9 +201,9 @@ export default function CaseTabs({ data }: { data: any }) {
 
         {/* Email Identity & Auth Summary */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="border border-slate-800 bg-slate-900/40 rounded-xl overflow-hidden">
-            <div className="border-b border-slate-800 p-4 bg-slate-900">
-              <h2 className="text-sm font-medium text-slate-200">Email Identity</h2>
+          <div className="border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
+            <div className="border-b border-white/10 p-4 bg-white/5">
+              <h2 className="text-[clamp(1rem,2vw,1.25rem)] font-bold tracking-[0.1em] text-slate-100 uppercase">Email Identity</h2>
             </div>
             <div className="p-6">
               <div className="flex flex-col items-center text-center">
@@ -182,9 +236,9 @@ export default function CaseTabs({ data }: { data: any }) {
             </div>
           </div>
 
-          <div className="border border-slate-800 bg-slate-900/40 rounded-xl overflow-hidden">
-            <div className="border-b border-slate-800 p-4 bg-slate-900">
-              <h2 className="text-sm font-medium text-slate-200">Email Authentication</h2>
+          <div className="border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
+            <div className="border-b border-white/10 p-4 bg-white/5">
+              <h2 className="text-[clamp(1rem,2vw,1.25rem)] font-bold tracking-[0.1em] text-slate-100 uppercase">Email Authentication</h2>
             </div>
             <div className="p-6 space-y-4">
               <div className="flex justify-between items-center border-b border-slate-800/50 pb-3">
@@ -208,9 +262,9 @@ export default function CaseTabs({ data }: { data: any }) {
         </div>
 
         {/* Campaign DNA Preview */}
-        <div className="border border-slate-800 bg-slate-900/40 rounded-xl overflow-hidden">
-          <div className="border-b border-slate-800 p-4 bg-slate-900 flex justify-between items-center">
-            <h2 className="text-sm font-medium text-slate-200">Campaign DNA Correlation</h2>
+        <div className="border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
+          <div className="border-b border-white/10 p-4 bg-white/5 flex justify-between items-center">
+            <h2 className="text-[clamp(1rem,2vw,1.25rem)] font-bold tracking-[0.1em] text-slate-100 uppercase">Campaign DNA Correlation</h2>
           </div>
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -237,6 +291,29 @@ export default function CaseTabs({ data }: { data: any }) {
           </div>
         </div>
 
+        {/* TECHNICAL MODE (or AUTO <=75): Render Threat Findings & Precautions in Collapsed Accordion at Bottom */}
+        {!isLaymanEffective && (
+          <div className="border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl overflow-hidden mt-6 shadow-xl">
+            <button 
+              type="button"
+              onClick={() => setAccordionOpen(!accordionOpen)}
+              className="w-full p-4 bg-white/5 flex justify-between items-center text-left hover:bg-white/10 transition-colors border-b border-white/5"
+            >
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-indigo-400" />
+                <h3 className="text-sm font-medium text-slate-200">Threat Findings & Recommended Precautions (Non-Technical Summary)</h3>
+              </div>
+              <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${accordionOpen ? 'rotate-90' : ''}`} />
+            </button>
+            <div className={`transition-all duration-300 overflow-hidden ${accordionOpen ? 'max-h-[2000px] opacity-100 border-t border-white/10' : 'max-h-0 opacity-0'}`}>
+              <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 bg-slate-950/50">
+                <ThreatFindings data={data} />
+                <RecommendedPrecautions data={data} />
+              </div>
+            </div>
+          </div>
+        )}
+
       </TabsContent>
 
       {/* 2. FORENSICS TAB */}
@@ -246,9 +323,10 @@ export default function CaseTabs({ data }: { data: any }) {
             <h3 className="text-sm font-medium text-slate-200">Parsed Email Headers</h3>
           </div>
           <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1"><span className="text-xs font-mono text-slate-500">From:</span> <span className="text-sm font-mono text-slate-300 break-all">{trace?.headers?.From}</span></div>
-            <div className="space-y-1"><span className="text-xs font-mono text-slate-500">Reply-To:</span> <span className="text-sm font-mono text-slate-300 break-all">{trace?.headers?.['Reply-To']}</span></div>
-            <div className="space-y-1"><span className="text-xs font-mono text-slate-500">To:</span> <span className="text-sm font-mono text-slate-300 break-all">{trace?.headers?.To || "Undisclosed"}</span></div>
+            <div className="space-y-1"><span className="text-xs font-mono text-slate-500">From:</span> <span className="text-sm font-mono text-slate-300 break-all">{displayFrom}</span></div>
+            <div className="space-y-1"><span className="text-xs font-mono text-slate-500">Reply-To:</span> <span className="text-sm font-mono text-slate-300 break-all">{displayReplyTo}</span></div>
+            <div className="space-y-1"><span className="text-xs font-mono text-slate-500">To:</span> <span className="text-sm font-mono text-slate-300 break-all">{displayTo}</span></div>
+
             <div className="space-y-1"><span className="text-xs font-mono text-slate-500">Subject:</span> <span className="text-sm font-mono text-slate-300 break-all">{trace?.headers?.Subject}</span></div>
             <div className="space-y-1"><span className="text-xs font-mono text-slate-500">Date:</span> <span className="text-sm font-mono text-slate-300 break-all">{trace?.headers?.Date}</span></div>
             <div className="space-y-1"><span className="text-xs font-mono text-slate-500">Message-ID:</span> <span className="text-sm font-mono text-slate-300 break-all">{trace?.headers?.['Message-ID']}</span></div>
@@ -330,42 +408,91 @@ export default function CaseTabs({ data }: { data: any }) {
       </TabsContent>
 
       {/* 4. NETWORK TAB */}
-      <TabsContent value="network" className="mt-0 outline-none space-y-6">
-        <h2 className="text-xl font-medium text-slate-200">Relay Route Timeline</h2>
-        <div className="relative pl-6 border-l border-slate-800 space-y-12">
-          {(trace?.relay_route || []).map((hop: any, i: number) => (
-            <div key={i} className="relative group">
-              <div className="absolute -left-[31px] top-4 w-4 h-4 rounded-full border-2 border-slate-900 bg-indigo-500 transition-colors group-hover:bg-indigo-400"></div>
-              <div className="border border-slate-800 bg-slate-900/40 rounded-xl p-6 ml-4">
-                <div className="flex justify-between items-start mb-4 border-b border-slate-800/60 pb-3">
-                  <span className="text-xs font-mono font-bold uppercase tracking-widest text-slate-300">HOP {hop.hop_number || i + 1}</span>
-                  <span className="text-xs font-mono text-slate-500">{hop.timestamp || "Time Unavailable"}</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">IP Address</div>
-                    <div className="text-sm font-mono text-indigo-300">{hop.ip_address || hop.ip || "Unknown"}</div>
+      <TabsContent value="network" className="mt-0 outline-none space-y-8">
+        
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {/* ── Interactive Geo-Map ── */}
+          <div className="flex flex-col h-[300px] xl:h-auto min-h-[400px]">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-[clamp(1.25rem,2vw,1.5rem)] font-bold tracking-[0.1em] text-slate-100 uppercase">Network Trace</h2>
+              {(trace?.relay_route || []).filter((h: any) => h.latitude != null && h.longitude != null).length > 0 && (
+                <span className="px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-[10px] font-mono font-bold tracking-widest border border-cyan-500/30 shadow-[0_0_8px_rgba(56,189,248,0.2)]">
+                  {(trace?.relay_route || []).filter((h: any) => h.latitude != null && h.longitude != null).length} HOPS MAPPED
+                </span>
+              )}
+            </div>
+            <div className="flex-1 rounded-2xl overflow-hidden border border-white/10 shadow-xl bg-white/5 backdrop-blur-md">
+              <NetworkMap hops={trace?.relay_route || []} />
+            </div>
+          </div>
+
+          {/* ── Relay Route Timeline ── */}
+          <div className="flex flex-col h-full max-h-[800px]">
+            <h2 className="text-[clamp(1.25rem,2vw,1.5rem)] font-bold tracking-[0.1em] text-slate-100 uppercase mb-4">Relay Route Timeline</h2>
+            <div className="relative pl-6 border-l border-white/10 space-y-12 overflow-y-auto pr-4 pb-12 pt-4 hide-scrollbar">
+          {(trace?.relay_route || []).map((hop: any, i: number, arr: any[]) => {
+            const hopNum = hop.hop_number || i + 1;
+            const isOrigin = i === 0;
+            const isFinal = i === arr.length - 1;
+            const dotColor = isOrigin ? 'bg-rose-500' : isFinal ? 'bg-emerald-500' : 'bg-indigo-500';
+            const dotGlow = isOrigin ? 'shadow-rose-500/40' : isFinal ? 'shadow-emerald-500/40' : 'shadow-indigo-500/40';
+            const labelColor = isOrigin ? 'text-rose-400' : isFinal ? 'text-emerald-400' : 'text-slate-300';
+            const label = isOrigin ? 'ORIGIN' : isFinal ? 'DESTINATION' : `RELAY`;
+
+            return (
+              <div key={i} className="relative group">
+                {/* Delay badge between hops */}
+                {i > 0 && hop.delay_seconds != null && hop.delay_seconds > 0 && (
+                  <div className="absolute -top-6 left-0 ml-8">
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${hop.delay_seconds > 30 ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-slate-800/60 text-slate-500 border-slate-700'}`}>
+                      +{hop.delay_seconds.toFixed(1)}s delay
+                    </span>
                   </div>
-                  <div>
-                    <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">HELO Domain</div>
-                    <div className="text-sm font-mono text-slate-300">{hop.helo_domain || "Unknown"}</div>
-                  </div>
-                  {(hop.country || hop.city) && (
-                    <div className="md:col-span-2">
-                      <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Resolved Location</div>
-                      <div className="text-sm text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" /> {hop.city ? `${hop.city}, ` : ''}{hop.country}</div>
+                )}
+                {/* Timeline dot */}
+                <div className={`absolute -left-[31px] top-4 w-4 h-4 rounded-full border-2 border-slate-900 ${dotColor} shadow-lg ${dotGlow} transition-colors group-hover:brightness-125`}></div>
+                <div className="border border-slate-800 bg-slate-900/40 rounded-xl p-6 ml-4 transition-colors hover:border-slate-700">
+                  <div className="flex justify-between items-start mb-4 border-b border-slate-800/60 pb-3">
+                    <div className="flex items-center gap-3">
+                      <span className={`text-xs font-mono font-bold uppercase tracking-widest ${labelColor}`}>HOP {hopNum}</span>
+                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded uppercase tracking-widest ${isOrigin ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : isFinal ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>{label}</span>
                     </div>
-                  )}
-                </div>
-                <div className="bg-slate-950 border border-slate-800 p-3 rounded text-xs font-mono text-slate-500 truncate" title={hop.raw_header || hop.raw}>
-                  {hop.raw_header || hop.raw || "No raw header available"}
+                    <span className="text-xs font-mono text-slate-500">{hop.timestamp || "Time Unavailable"}</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">IP Address</div>
+                      <div className="text-sm font-mono text-indigo-300">{hop.ip_address || hop.ip || "Unknown"}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Server / HELO</div>
+                      <div className="text-sm font-mono text-slate-300">{hop.server_name || hop.helo_domain || "Unknown"}</div>
+                    </div>
+                    {(hop.country || hop.city) && (
+                      <div>
+                        <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Location</div>
+                        <div className="text-sm text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" /> {[hop.city, hop.region, hop.country].filter(Boolean).join(', ')}</div>
+                      </div>
+                    )}
+                    {hop.isp && (
+                      <div>
+                        <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">ISP / ASN</div>
+                        <div className="text-sm text-slate-400">{hop.isp}{hop.asn ? ` · ${hop.asn}` : ''}</div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="bg-slate-950 border border-slate-800 p-3 rounded text-xs font-mono text-slate-500 truncate" title={hop.raw_header || hop.raw}>
+                    {hop.raw_header || hop.raw || "No raw header available"}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {(!trace?.relay_route || trace.relay_route.length === 0) && (
             <div className="text-sm text-slate-500 italic ml-4">No relay route extracted from headers.</div>
           )}
+            </div>
+          </div>
         </div>
       </TabsContent>
 
