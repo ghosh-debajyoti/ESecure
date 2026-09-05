@@ -10,3 +10,5 @@ mvp.db
 # Next.js
 node_modules/
 .next/
+results/
+saved_phishing_model/
