@@ -2,6 +2,7 @@ import asyncio
 import base64
 import os
 import re
+import logging
 from typing import Any
 
 import httpx
@@ -46,8 +47,12 @@ class ThreatIntelService:
                 return result
             else:
                 return {"source": "VirusTotal", "error": f"HTTP {response.status_code}", "status": "failed"}
+        except httpx.RequestError as e:
+            logging.warning(f"Threat intel service request error for VT URL: {e}")
+            return {"source": "VirusTotal", "error": "Service unavailable or timeout", "status": "failed"}
         except Exception as e:
-            return {"source": "VirusTotal", "error": str(e), "status": "failed"}
+            logging.error(f"Unexpected error checking VT URL: {e}")
+            return {"source": "VirusTotal", "error": "Internal error", "status": "failed"}
 
     @staticmethod
     async def _check_vt_ip(client: httpx.AsyncClient, ip: str, api_key: str) -> dict[str, Any]:
@@ -78,8 +83,12 @@ class ThreatIntelService:
                 return result
             else:
                 return {"source": "VirusTotal", "error": f"HTTP {response.status_code}", "status": "failed"}
+        except httpx.RequestError as e:
+            logging.warning(f"Threat intel service request error for VT IP: {e}")
+            return {"source": "VirusTotal", "error": "Service unavailable or timeout", "status": "failed"}
         except Exception as e:
-            return {"source": "VirusTotal", "error": str(e), "status": "failed"}
+            logging.error(f"Unexpected error checking VT IP: {e}")
+            return {"source": "VirusTotal", "error": "Internal error", "status": "failed"}
 
     @staticmethod
     async def enrich_indicators(indicators: list[dict[str, Any]]) -> list[dict[str, Any]]:

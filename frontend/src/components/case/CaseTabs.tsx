@@ -92,17 +92,17 @@ export default function CaseTabs({
 
   return (
     <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="bg-slate-900/50 border border-slate-800 p-1 mb-6 rounded-xl flex w-full backdrop-blur-sm shadow-sm">
-        <TabsTrigger value="overview" className="flex-1 rounded-lg py-2 data-[state=active]:bg-indigo-600 data-[state=active]:text-white text-slate-400 text-[10px] xl:text-xs font-medium tracking-wider transition-all">OVERVIEW</TabsTrigger>
-        <TabsTrigger value="forensics" className="flex-1 rounded-lg py-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400 text-[10px] xl:text-xs font-medium tracking-wider transition-all">FORENSICS</TabsTrigger>
-        <TabsTrigger value="authentication" className="flex-1 rounded-lg py-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400 text-[10px] xl:text-xs font-medium tracking-wider transition-all">AUTHENTICATION</TabsTrigger>
-        <TabsTrigger value="network" className="flex-1 rounded-lg py-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400 text-[10px] xl:text-xs font-medium tracking-wider transition-all">NETWORK</TabsTrigger>
-        <TabsTrigger value="indicators" className="flex-1 rounded-lg py-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400 text-[10px] xl:text-xs font-medium tracking-wider transition-all">INDICATORS</TabsTrigger>
-        <TabsTrigger value="intelligence" className="flex-1 rounded-lg py-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400 text-[10px] xl:text-xs font-medium tracking-wider transition-all">INTELLIGENCE</TabsTrigger>
-        <TabsTrigger value="attachments" className="flex-1 rounded-lg py-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400 text-[10px] xl:text-xs font-medium tracking-wider transition-all">ATTACHMENTS</TabsTrigger>
-        <TabsTrigger value="campaign" className="flex-1 rounded-lg py-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400 text-[10px] xl:text-xs font-medium tracking-wider transition-all">CAMPAIGN DNA</TabsTrigger>
-        <TabsTrigger value="graph" className="flex-1 rounded-lg py-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400 text-[10px] xl:text-xs font-medium tracking-wider transition-all">ATTACK GRAPH</TabsTrigger>
-        <TabsTrigger value="evidence" className="flex-1 rounded-lg py-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400 text-[10px] xl:text-xs font-medium tracking-wider transition-all">EVIDENCE</TabsTrigger>
+      <TabsList className="glass-panel p-1.5 mb-8 rounded-xl flex w-full">
+        <TabsTrigger value="overview" className="flex-1 rounded-lg py-2.5 data-[state=active]:bg-primary/20 data-[state=active]:text-white text-muted-foreground text-[10px] xl:text-xs font-medium tracking-widest transition-all data-[state=active]:shadow-[inset_0_0_12px_rgba(59,130,246,0.2)]">OVERVIEW</TabsTrigger>
+        <TabsTrigger value="forensics" className="flex-1 rounded-lg py-2.5 data-[state=active]:bg-white/10 data-[state=active]:text-white text-muted-foreground text-[10px] xl:text-xs font-medium tracking-widest transition-all">FORENSICS</TabsTrigger>
+        <TabsTrigger value="authentication" className="flex-1 rounded-lg py-2.5 data-[state=active]:bg-white/10 data-[state=active]:text-white text-muted-foreground text-[10px] xl:text-xs font-medium tracking-widest transition-all">AUTHENTICATION</TabsTrigger>
+        <TabsTrigger value="network" className="flex-1 rounded-lg py-2.5 data-[state=active]:bg-white/10 data-[state=active]:text-white text-muted-foreground text-[10px] xl:text-xs font-medium tracking-widest transition-all">NETWORK</TabsTrigger>
+        <TabsTrigger value="indicators" className="flex-1 rounded-lg py-2.5 data-[state=active]:bg-white/10 data-[state=active]:text-white text-muted-foreground text-[10px] xl:text-xs font-medium tracking-widest transition-all">INDICATORS</TabsTrigger>
+        <TabsTrigger value="intelligence" className="flex-1 rounded-lg py-2.5 data-[state=active]:bg-white/10 data-[state=active]:text-white text-muted-foreground text-[10px] xl:text-xs font-medium tracking-widest transition-all">INTELLIGENCE</TabsTrigger>
+        <TabsTrigger value="attachments" className="flex-1 rounded-lg py-2.5 data-[state=active]:bg-white/10 data-[state=active]:text-white text-muted-foreground text-[10px] xl:text-xs font-medium tracking-widest transition-all">ATTACHMENTS</TabsTrigger>
+        <TabsTrigger value="campaign" className="flex-1 rounded-lg py-2.5 data-[state=active]:bg-white/10 data-[state=active]:text-white text-muted-foreground text-[10px] xl:text-xs font-medium tracking-widest transition-all">CAMPAIGN DNA</TabsTrigger>
+        <TabsTrigger value="graph" className="flex-1 rounded-lg py-2.5 data-[state=active]:bg-white/10 data-[state=active]:text-white text-muted-foreground text-[10px] xl:text-xs font-medium tracking-widest transition-all">ATTACK GRAPH</TabsTrigger>
+        <TabsTrigger value="evidence" className="flex-1 rounded-lg py-2.5 data-[state=active]:bg-white/10 data-[state=active]:text-white text-muted-foreground text-[10px] xl:text-xs font-medium tracking-widest transition-all">EVIDENCE</TabsTrigger>
       </TabsList>
       
       {/* 1. OVERVIEW TAB */}
@@ -117,10 +117,10 @@ export default function CaseTabs({
         )}
 
         {/* Threat Assessment */}
-        <div className="border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
-          <div className="border-b border-white/10 p-4 bg-white/5 flex justify-between items-center">
-            <h2 className="text-[clamp(1rem,2vw,1.25rem)] font-bold tracking-[0.1em] text-slate-100 uppercase">Threat Risk Assessment</h2>
-            <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold tracking-widest shadow-[0_0_8px_currentColor] ${assertion?.threat_score >= 80 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30' : assertion?.threat_score >= 40 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'}`}>
+        <div className="glass-panel rounded-2xl overflow-hidden relative">
+          <div className="border-b border-white/5 p-6 bg-white/5 flex justify-between items-center relative z-10">
+            <h2 className="text-[clamp(1rem,2vw,1.25rem)] font-bold tracking-[0.1em] text-white uppercase glow-text">Threat Risk Assessment</h2>
+            <span className={`px-4 py-2 rounded-lg text-xs font-mono font-bold tracking-widest shadow-[0_0_12px_currentColor] ${assertion?.threat_score >= 80 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30' : assertion?.threat_score >= 40 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'}`}>
               SCORE: {Math.round(assertion?.threat_score || 0)} / 100 ({assertion?.severity || 'LOW'})
             </span>
           </div>
@@ -172,38 +172,38 @@ export default function CaseTabs({
 
         {/* Forensic Snapshot */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="border border-slate-800 bg-slate-900/40 rounded-xl p-4 flex flex-col items-center justify-center text-center">
-            <Mail className="w-5 h-5 text-indigo-500 mb-2" />
-            <div className="text-2xl font-semibold text-slate-200">{1}</div>
-            <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-1">Email</div>
+          <div className="glass-panel rounded-xl p-6 flex flex-col items-center justify-center text-center">
+            <Mail className="w-6 h-6 text-primary mb-3 glow-primary" />
+            <div className="text-3xl font-bold text-white mb-1">{1}</div>
+            <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Email</div>
           </div>
-          <div className="border border-slate-800 bg-slate-900/40 rounded-xl p-4 flex flex-col items-center justify-center text-center">
-            <Network className="w-5 h-5 text-indigo-500 mb-2" />
-            <div className="text-2xl font-semibold text-slate-200">{numHops}</div>
-            <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-1">Relay Hops</div>
+          <div className="glass-panel rounded-xl p-6 flex flex-col items-center justify-center text-center">
+            <Network className="w-6 h-6 text-primary mb-3 glow-primary" />
+            <div className="text-3xl font-bold text-white mb-1">{numHops}</div>
+            <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Relay Hops</div>
           </div>
-          <div className="border border-slate-800 bg-slate-900/40 rounded-xl p-4 flex flex-col items-center justify-center text-center">
-            <Target className="w-5 h-5 text-indigo-500 mb-2" />
-            <div className="text-2xl font-semibold text-slate-200">{numIndicators}</div>
-            <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-1">Indicators</div>
+          <div className="glass-panel rounded-xl p-6 flex flex-col items-center justify-center text-center">
+            <Target className="w-6 h-6 text-primary mb-3 glow-primary" />
+            <div className="text-3xl font-bold text-white mb-1">{numIndicators}</div>
+            <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Indicators</div>
           </div>
-          <div className="border border-slate-800 bg-slate-900/40 rounded-xl p-4 flex flex-col items-center justify-center text-center">
-            <FileWarning className="w-5 h-5 text-indigo-500 mb-2" />
-            <div className="text-2xl font-semibold text-slate-200">{numAttachments}</div>
-            <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-1">Attachments</div>
+          <div className="glass-panel rounded-xl p-6 flex flex-col items-center justify-center text-center">
+            <FileWarning className="w-6 h-6 text-primary mb-3 glow-primary" />
+            <div className="text-3xl font-bold text-white mb-1">{numAttachments}</div>
+            <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Attachments</div>
           </div>
-          <div className="border border-slate-800 bg-slate-900/40 rounded-xl p-4 flex flex-col items-center justify-center text-center">
-            <Activity className="w-5 h-5 text-indigo-500 mb-2" />
-            <div className="text-2xl font-semibold text-slate-200">{numMime}</div>
-            <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-1">MIME Parts</div>
+          <div className="glass-panel rounded-xl p-6 flex flex-col items-center justify-center text-center">
+            <Activity className="w-6 h-6 text-primary mb-3 glow-primary" />
+            <div className="text-3xl font-bold text-white mb-1">{numMime}</div>
+            <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">MIME Parts</div>
           </div>
         </div>
 
         {/* Email Identity & Auth Summary */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
-            <div className="border-b border-white/10 p-4 bg-white/5">
-              <h2 className="text-[clamp(1rem,2vw,1.25rem)] font-bold tracking-[0.1em] text-slate-100 uppercase">Email Identity</h2>
+          <div className="glass-panel rounded-2xl overflow-hidden relative">
+            <div className="border-b border-white/5 p-6 bg-white/5">
+              <h2 className="text-[clamp(1rem,2vw,1.25rem)] font-bold tracking-[0.1em] text-white uppercase glow-text">Email Identity</h2>
             </div>
             <div className="p-6">
               <div className="flex flex-col items-center text-center">
@@ -236,9 +236,9 @@ export default function CaseTabs({
             </div>
           </div>
 
-          <div className="border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
-            <div className="border-b border-white/10 p-4 bg-white/5">
-              <h2 className="text-[clamp(1rem,2vw,1.25rem)] font-bold tracking-[0.1em] text-slate-100 uppercase">Email Authentication</h2>
+          <div className="glass-panel rounded-2xl overflow-hidden relative">
+            <div className="border-b border-white/5 p-6 bg-white/5">
+              <h2 className="text-[clamp(1rem,2vw,1.25rem)] font-bold tracking-[0.1em] text-white uppercase glow-text">Email Authentication</h2>
             </div>
             <div className="p-6 space-y-4">
               <div className="flex justify-between items-center border-b border-slate-800/50 pb-3">
@@ -262,9 +262,9 @@ export default function CaseTabs({
         </div>
 
         {/* Campaign DNA Preview */}
-        <div className="border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
-          <div className="border-b border-white/10 p-4 bg-white/5 flex justify-between items-center">
-            <h2 className="text-[clamp(1rem,2vw,1.25rem)] font-bold tracking-[0.1em] text-slate-100 uppercase">Campaign DNA Correlation</h2>
+        <div className="glass-panel rounded-2xl overflow-hidden relative">
+          <div className="border-b border-white/5 p-6 bg-white/5 flex justify-between items-center relative z-10">
+            <h2 className="text-[clamp(1rem,2vw,1.25rem)] font-bold tracking-[0.1em] text-white uppercase glow-text">Campaign DNA Correlation</h2>
           </div>
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -293,20 +293,20 @@ export default function CaseTabs({
 
         {/* TECHNICAL MODE (or AUTO <=75): Render Threat Findings & Precautions in Collapsed Accordion at Bottom */}
         {!isLaymanEffective && (
-          <div className="border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl overflow-hidden mt-6 shadow-xl">
+          <div className="glass-panel rounded-2xl overflow-hidden mt-6 relative">
             <button 
               type="button"
               onClick={() => setAccordionOpen(!accordionOpen)}
-              className="w-full p-4 bg-white/5 flex justify-between items-center text-left hover:bg-white/10 transition-colors border-b border-white/5"
+              className="w-full p-6 bg-white/5 flex justify-between items-center text-left hover:bg-white/10 transition-colors border-b border-white/5"
             >
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-indigo-400" />
-                <h3 className="text-sm font-medium text-slate-200">Threat Findings & Recommended Precautions (Non-Technical Summary)</h3>
+              <div className="flex items-center gap-3">
+                <BookOpen className="w-5 h-5 text-primary glow-primary" />
+                <h3 className="text-base font-medium text-white">Threat Findings & Recommended Precautions (Non-Technical Summary)</h3>
               </div>
-              <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${accordionOpen ? 'rotate-90' : ''}`} />
+              <ChevronRight className={`w-5 h-5 text-muted-foreground transition-transform ${accordionOpen ? 'rotate-90' : ''}`} />
             </button>
-            <div className={`transition-all duration-300 overflow-hidden ${accordionOpen ? 'max-h-[2000px] opacity-100 border-t border-white/10' : 'max-h-0 opacity-0'}`}>
-              <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 bg-slate-950/50">
+            <div className={`transition-all duration-300 overflow-hidden ${accordionOpen ? 'max-h-[2000px] opacity-100 border-t border-white/5 bg-background/50' : 'max-h-0 opacity-0'}`}>
+              <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <ThreatFindings data={data} />
                 <RecommendedPrecautions data={data} />
               </div>
@@ -318,7 +318,7 @@ export default function CaseTabs({
 
       {/* 2. FORENSICS TAB */}
       <TabsContent value="forensics" className="mt-0 outline-none space-y-6">
-        <div className="border border-slate-800 bg-slate-900/40 rounded-xl overflow-hidden">
+        <div className="glass-panel rounded-xl overflow-hidden">
           <div className="border-b border-slate-800 p-4 bg-slate-900">
             <h3 className="text-sm font-medium text-slate-200">Parsed Email Headers</h3>
           </div>
@@ -334,7 +334,7 @@ export default function CaseTabs({
           </div>
         </div>
 
-        <div className="border border-slate-800 bg-slate-900/40 rounded-xl overflow-hidden">
+        <div className="glass-panel rounded-xl overflow-hidden">
           <div className="border-b border-slate-800 p-4 bg-slate-900">
             <h3 className="text-sm font-medium text-slate-200">Raw Body (Untrusted Content)</h3>
           </div>
@@ -348,7 +348,7 @@ export default function CaseTabs({
 
       {/* 3. AUTHENTICATION TAB */}
       <TabsContent value="authentication" className="mt-0 outline-none space-y-6">
-        <div className="border border-slate-800 bg-slate-900/40 rounded-xl overflow-hidden">
+        <div className="glass-panel rounded-xl overflow-hidden">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-800 bg-slate-900 text-xs font-mono text-slate-500 uppercase">
@@ -451,7 +451,7 @@ export default function CaseTabs({
                 )}
                 {/* Timeline dot */}
                 <div className={`absolute -left-[31px] top-4 w-4 h-4 rounded-full border-2 border-slate-900 ${dotColor} shadow-lg ${dotGlow} transition-colors group-hover:brightness-125`}></div>
-                <div className="border border-slate-800 bg-slate-900/40 rounded-xl p-6 ml-4 transition-colors hover:border-slate-700">
+                <div className="glass-panel rounded-xl p-6 ml-4 transition-colors hover:border-slate-700">
                   <div className="flex justify-between items-start mb-4 border-b border-slate-800/60 pb-3">
                     <div className="flex items-center gap-3">
                       <span className={`text-xs font-mono font-bold uppercase tracking-widest ${labelColor}`}>HOP {hopNum}</span>
@@ -499,21 +499,21 @@ export default function CaseTabs({
       {/* 5. INDICATORS TAB */}
       <TabsContent value="indicators" className="mt-0 outline-none space-y-6">
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="border border-slate-800 bg-slate-900/40 p-4 rounded-xl text-center">
+          <div className="glass-panel p-4 rounded-xl text-center">
             <div className="text-2xl font-mono text-indigo-400 mb-1">{indCounts.ips}</div>
             <div className="text-xs font-mono uppercase tracking-widest text-slate-500">IP Addresses</div>
           </div>
-          <div className="border border-slate-800 bg-slate-900/40 p-4 rounded-xl text-center">
+          <div className="glass-panel p-4 rounded-xl text-center">
             <div className="text-2xl font-mono text-indigo-400 mb-1">{indCounts.domains}</div>
             <div className="text-xs font-mono uppercase tracking-widest text-slate-500">Domains</div>
           </div>
-          <div className="border border-slate-800 bg-slate-900/40 p-4 rounded-xl text-center">
+          <div className="glass-panel p-4 rounded-xl text-center">
             <div className="text-2xl font-mono text-indigo-400 mb-1">{indCounts.urls}</div>
             <div className="text-xs font-mono uppercase tracking-widest text-slate-500">URLs</div>
           </div>
         </div>
 
-        <div className="border border-slate-800 bg-slate-900/40 rounded-xl overflow-hidden">
+        <div className="glass-panel rounded-xl overflow-hidden">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-800 bg-slate-900 text-xs font-mono text-slate-500 uppercase">
@@ -556,7 +556,7 @@ export default function CaseTabs({
       {/* 6. INTELLIGENCE TAB */}
       <TabsContent value="intelligence" className="mt-0 outline-none space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="border border-slate-800 bg-slate-900/40 rounded-xl overflow-hidden md:col-span-2">
+          <div className="glass-panel rounded-xl overflow-hidden md:col-span-2">
             <div className="border-b border-slate-800 p-4 bg-slate-900 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm font-medium text-slate-200 uppercase tracking-wider">Origin Infrastructure</h3>
@@ -623,7 +623,7 @@ export default function CaseTabs({
             </div>
           </div>
           
-          <div className="border border-slate-800 bg-slate-900/40 rounded-xl overflow-hidden">
+          <div className="glass-panel rounded-xl overflow-hidden">
             <div className="border-b border-slate-800 p-4 bg-slate-900">
               <h3 className="text-sm font-medium text-slate-200">Lookalike Domain Analysis</h3>
             </div>
@@ -671,7 +671,7 @@ export default function CaseTabs({
           </div>
         </div>
 
-        <div className="border border-slate-800 bg-slate-900/40 rounded-xl overflow-hidden">
+        <div className="glass-panel rounded-xl overflow-hidden">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-800 bg-slate-900 text-xs font-mono text-slate-500 uppercase">
@@ -770,7 +770,7 @@ export default function CaseTabs({
 
       {/* 10. EVIDENCE TAB */}
       <TabsContent value="evidence" className="mt-0 outline-none space-y-6">
-        <div className="border border-slate-800 bg-slate-900/40 rounded-xl p-8 max-w-4xl">
+        <div className="glass-panel rounded-xl p-8 max-w-4xl">
           <h2 className="text-xl font-medium text-slate-200 mb-6">Evidence Custody Record</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">

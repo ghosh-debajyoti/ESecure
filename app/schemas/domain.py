@@ -24,6 +24,7 @@ class AssertionBase(BaseModel):
     technical_flags: dict[str, Any] = {}
     risk_increasers: list[dict[str, Any]] = []
     risk_reducers: list[dict[str, Any]] = []
+    sender_classification: str = "UNKNOWN"
 
 
 class EvidenceCustodyBase(BaseModel):

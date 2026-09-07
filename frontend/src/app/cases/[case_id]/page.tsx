@@ -138,7 +138,7 @@ export default function CaseInvestigationPage() {
       <div className="relative z-10 p-4 md:p-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
         
         {/* Top Navigation & Status Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 sticky top-0 bg-slate-950/80 backdrop-blur-md z-50 py-2 border-b border-slate-800/50">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 sticky top-0 bg-background/80 backdrop-blur-xl z-50 py-3 border-b border-white/5">
           <Link href="/" className="inline-flex items-center gap-2 text-xs font-mono text-slate-500 hover:text-slate-300 transition-colors uppercase tracking-widest">
             <ChevronLeft className="w-4 h-4" /> <span className="hidden sm:inline">Command Center</span>
           </Link>
@@ -166,7 +166,8 @@ export default function CaseInvestigationPage() {
         </div>
 
         {/* Investigation Spine */}
-        <div className="mb-8 border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between px-4 sm:px-8 overflow-x-auto shadow-xl">
+        <div className="mb-8 glass-panel rounded-2xl p-4 flex items-center justify-between px-4 sm:px-8 overflow-x-auto relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none"></div>
           {[
             { label: 'EMAIL', icon: Mail },
             { label: 'FORENSICS', icon: Activity },
@@ -193,48 +194,46 @@ export default function CaseInvestigationPage() {
         </div>
 
         {/* Case Header */}
-        <div className="border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl p-6 relative overflow-hidden mb-8 shadow-xl">
-          <div className="absolute -top-12 -right-12 p-8 opacity-5 text-cyan-500 rotate-12">
-            <Hexagon className="w-64 h-64" />
-          </div>
+        <div className="glass-panel rounded-2xl p-8 relative overflow-hidden mb-10">
+          <div className="absolute -top-32 -right-32 w-96 h-96 bg-primary/20 rounded-full blur-[100px] pointer-events-none z-0"></div>
           
           <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start gap-8">
             <div className="flex-1 w-full">
-              <div className="flex flex-wrap items-center gap-3 mb-4 border-b border-white/10 pb-4">
-                <span className="px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-widest bg-white/10 text-slate-300 border border-white/5">
+              <div className="flex flex-wrap items-center gap-3 mb-6 border-b border-white/5 pb-6">
+                <span className="px-3 py-1 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider bg-white/10 text-white/80 border border-white/10">
                   {data.status === 'open' ? 'Active Case' : 'Closed'}
                 </span>
-                <span className="px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-widest bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_8px_rgba(56,189,248,0.15)]">
+                <span className="px-3 py-1 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider bg-primary/20 text-white border border-primary/30 shadow-[0_0_12px_rgba(59,130,246,0.3)]">
                   {caseId}
                 </span>
-                <span className={`px-3 py-1 rounded-full text-[10px] sm:text-xs font-mono font-bold tracking-widest border shadow-[0_0_8px_currentColor] ${getSeverityStyle(severity)}`}>
+                <span className={`px-3 py-1 rounded-md text-[10px] sm:text-xs font-mono font-bold tracking-wider border shadow-[0_0_12px_currentColor] ${getSeverityStyle(severity)}`}>
                   SEVERITY: {severity} ({Math.round(score)}/100)
                 </span>
-                <span className="text-[10px] sm:text-xs font-mono text-slate-500 ml-auto w-full sm:w-auto mt-2 sm:mt-0">
+                <span className="text-[10px] sm:text-xs font-mono text-muted-foreground ml-auto w-full sm:w-auto mt-2 sm:mt-0">
                   Created: {new Date(data.created_at).toLocaleString()}
                 </span>
               </div>
               
-              <h1 className="text-[clamp(1.25rem,2.5vw,1.75rem)] font-bold tracking-[0.05em] text-slate-100 mb-6 break-words uppercase">
+              <h1 className="text-[clamp(1.5rem,3vw,2.5rem)] font-bold tracking-tight text-white mb-8 break-words drop-shadow-sm glow-text">
                 {trace?.headers?.Subject || "(No Subject)"}
               </h1>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8 text-sm">
-                <div className="bg-white/5 p-3 rounded-lg border border-white/5">
-                  <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest mb-1">Sender</div>
-                  <div className="text-slate-200 font-mono text-xs break-all">{displaySender}</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                <div className="bg-white/5 p-4 rounded-xl border border-white/5 shadow-inner">
+                  <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-2">Sender</div>
+                  <div className="text-white font-mono text-xs break-all">{displaySender}</div>
                 </div>
-                <div className="bg-white/5 p-3 rounded-lg border border-white/5">
-                  <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest mb-1">Reply-To</div>
-                  <div className="text-slate-200 font-mono text-xs break-all">{displayReplyTo}</div>
+                <div className="bg-white/5 p-4 rounded-xl border border-white/5 shadow-inner">
+                  <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-2">Reply-To</div>
+                  <div className="text-white font-mono text-xs break-all">{displayReplyTo}</div>
                 </div>
-                <div className="bg-white/5 p-3 rounded-lg border border-white/5">
-                  <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest mb-1">Email Date</div>
-                  <div className="text-slate-200 font-mono text-xs">{trace?.headers?.Date || "Unknown"}</div>
+                <div className="bg-white/5 p-4 rounded-xl border border-white/5 shadow-inner">
+                  <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-2">Email Date</div>
+                  <div className="text-white font-mono text-xs">{trace?.headers?.Date || "Unknown"}</div>
                 </div>
-                <div className="bg-white/5 p-3 rounded-lg border border-white/5">
-                  <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest mb-1">Evidence Hash (SHA-256)</div>
-                  <div className="text-slate-400 font-mono text-[10px] break-all">{evidence_custody?.sha256_hash || "Not available"}</div>
+                <div className="bg-white/5 p-4 rounded-xl border border-white/5 shadow-inner">
+                  <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-2">Evidence Hash (SHA-256)</div>
+                  <div className="text-muted-foreground font-mono text-[10px] break-all">{evidence_custody?.sha256_hash || "Not available"}</div>
                 </div>
               </div>
             </div>

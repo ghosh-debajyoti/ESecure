@@ -1,6 +1,8 @@
 import re
 import traceback
 import uuid
+import logging
+from app.core.exceptions import EmailParsingError
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Response
 from fastapi.responses import StreamingResponse
@@ -23,6 +25,9 @@ from app.services.campaign_service import detect_and_store_campaign
 from app.services.report_service import ReportService
 from app.services.relay_service import RelayService
 from app.services.attachment_service import AttachmentService
+from app.services.thread_service import ThreadContinuityService
+from app.services.image_service import ImageAnalysisService
+from app.services.spoofed_service import SpoofedAccountService
 from app.models import EmailAnalysis
 
 router = APIRouter()
@@ -49,6 +54,34 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
         alignment = ForensicEngineService(parsed.headers).evaluate_alignment()
         risk_increasers = list(alignment.get("risk_increasers", []))
         risk_reducers = list(alignment.get("risk_reducers", []))
+        
+        # QR/Image Phishing Detection
+        image_results = await ImageAnalysisService.extract_and_analyze_images(parser.msg)
+        image_penalty = 0.0
+        for img_res in image_results:
+            if img_res.is_suspicious:
+                image_penalty += img_res.risk_score
+                risk_increasers.append({
+                    "factor": f"Malicious QR/Image Content found in {img_res.filename}",
+                    "score": img_res.risk_score,
+                    "category": "Payload"
+                })
+        
+        # Thread Continuity Forensics
+        thread_result = ThreadContinuityService.analyze_thread(parsed.headers, parsed.body)
+        for finding in thread_result.findings:
+            if finding.severity in ["HIGH", "MEDIUM"]:
+                risk_increasers.append({
+                    "factor": finding.description,
+                    "score": 15 if finding.severity == "MEDIUM" else 25,
+                    "category": "Identity"
+                })
+            else:
+                risk_reducers.append({
+                    "factor": finding.description,
+                    "score": -5,
+                    "category": "Identity"
+                })
         
         # 3. TLSH DNA
         tlsh_hash = DnaService.generate_hash(parsed.body)
@@ -118,9 +151,25 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
                 "category": "Intelligence"
             })
 
+        # Spoofed vs Compromised Classification
+        has_severe_threat = image_penalty > 0 or attachment_penalty > 0 or has_flagged_indicator
+        sender_classification = SpoofedAccountService.classify_account(
+            alignment=alignment,
+            lookalikes=lookalikes,
+            is_coordinated_campaign=is_coordinated,
+            has_severe_threat=has_severe_threat
+        )
+
+        if sender_classification == "POSSIBLY_COMPROMISED":
+            risk_increasers.append({
+                "factor": "Account is POSSIBLY COMPROMISED (trusted infrastructure sending severe threats)",
+                "score": 20,
+                "category": "Identity"
+            })
+
         # Calculate final threat score & severity label
         scoring_svc = ThreatScoringService(parsed.body, alignment["technical_flag_score"])
-        final_score, model_score, tech_score = scoring_svc.generate_final_score(risk_increasers, risk_reducers)
+        final_score, phishing_model_score, ai_model_score, tech_score, ai_reasoning = scoring_svc.generate_final_score(risk_increasers, risk_reducers)
         severity = get_severity_label(final_score)
 
         # 5. Graph
@@ -190,17 +239,18 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
             threat_score=final_score,
             severity=severity,
             threat_score_breakdown={
-                "model_score": model_score,
+                "model_score": phishing_model_score,
+                "ai_model_score": ai_model_score,
+                "ai_reasoning": ai_reasoning,
                 "technical_score": tech_score,
-                "attachment_penalty": attachment_penalty,
-                "intel_penalty": intel_penalty
             },
             technical_flags=alignment,
             lookalikes=lookalikes,
             is_coordinated=is_coordinated,
             sha256_hash=sha256_hash,
             risk_increasers=risk_increasers,
-            risk_reducers=risk_reducers
+            risk_reducers=risk_reducers,
+            sender_classification=sender_classification
         )
         
         # Update postgres DB with uco_data for reports
@@ -229,10 +279,15 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
             "graph": graph
         }
 
+    except EmailParsingError as e:
+        db.rollback()
+        logging.warning(f"Failed to parse email file: {e}")
+        raise HTTPException(status_code=422, detail="The provided email file is malformed or invalid.")
     except Exception as e:
         db.rollback()
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"An error occurred during analysis: {e!s}")
+        error_id = str(uuid.uuid4())
+        logging.error(f"Internal Error [{error_id}]: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"An internal error occurred during analysis. Reference ID: {error_id}")
 
 @router.get("/export/{case_number}")
 async def export_pdf_report(
@@ -264,8 +319,9 @@ async def export_pdf_report(
     except HTTPException:
         raise
     except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Failed to generate report: {e!s}")
+        error_id = str(uuid.uuid4())
+        logging.error(f"Internal Error [{error_id}] during PDF export: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to generate report. Reference ID: {error_id}")
 
 
 @router.get("/cases")
@@ -281,8 +337,9 @@ async def get_cases(limit: int = 50, pg_db: Session = Depends(get_pg_db)):
             "status": r.uco_data.get("status", "open") if r.uco_data else "open"
         } for r in records]
     except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Failed to fetch cases: {e!s}")
+        error_id = str(uuid.uuid4())
+        logging.error(f"Internal Error [{error_id}] fetching cases: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to fetch cases. Reference ID: {error_id}")
 
 @router.get("/cases/{case_number}")
 async def get_case(case_number: str, db: Session = Depends(get_db), pg_db: Session = Depends(get_pg_db)):
@@ -301,5 +358,6 @@ async def get_case(case_number: str, db: Session = Depends(get_db), pg_db: Sessi
     except HTTPException:
         raise
     except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Failed to fetch case: {e!s}")
+        error_id = str(uuid.uuid4())
+        logging.error(f"Internal Error [{error_id}] fetching case {case_number}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to fetch case. Reference ID: {error_id}")

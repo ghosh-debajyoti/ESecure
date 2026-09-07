@@ -22,21 +22,24 @@ export default function StixGraph({ data }: { data: GraphData }) {
     ...n,
     position: { x: (i % 3) * 200, y: Math.floor(i / 3) * 150 },
     style: {
-      background: n.type === "observable-email" ? "#1e293b" : "#0f172a",
-      color: "#fff",
-      border: "1px solid #334155",
-      borderRadius: "8px",
-      padding: "10px",
-      width: 150,
+      background: "rgba(15, 23, 42, 0.6)",
+      color: "#f8fafc",
+      border: "1px solid rgba(255, 255, 255, 0.1)",
+      borderRadius: "12px",
+      padding: "12px",
+      width: 160,
       textAlign: "center",
-      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+      boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(59, 130, 246, 0.1)",
+      backdropFilter: "blur(12px)",
+      fontSize: "12px",
+      fontFamily: "monospace",
     }
   }));
 
   const initialEdges = (data?.edges || []).map((e) => ({
     ...e,
     animated: true,
-    style: { stroke: "#ef4444" },
+    style: { stroke: "rgba(59, 130, 246, 0.6)", strokeWidth: 2 },
   }));
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -48,7 +51,7 @@ export default function StixGraph({ data }: { data: GraphData }) {
   );
 
   return (
-    <div className="h-[400px] w-full border border-zinc-800 rounded-xl overflow-hidden bg-zinc-950/50">
+    <div className="h-[400px] w-full glass-panel rounded-2xl overflow-hidden relative">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -57,9 +60,9 @@ export default function StixGraph({ data }: { data: GraphData }) {
         onConnect={onConnect}
         fitView
       >
-        <Controls className="bg-zinc-900 border-zinc-800 fill-zinc-400" />
-        <MiniMap nodeColor="#334155" maskColor="rgba(0, 0, 0, 0.8)" />
-        <Background gap={12} size={1} color="#334155" />
+        <Controls className="bg-background/80 border-white/10 fill-white/60 backdrop-blur-md" />
+        <MiniMap nodeColor="rgba(59, 130, 246, 0.5)" maskColor="rgba(0, 0, 0, 0.6)" style={{ backgroundColor: 'rgba(15, 23, 42, 0.8)' }} />
+        <Background gap={16} size={1} color="rgba(255, 255, 255, 0.05)" />
       </ReactFlow>
     </div>
   );

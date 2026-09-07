@@ -6,8 +6,16 @@ try:
         "text-classification", model="./saved_phishing_model"
     )
 except Exception as e:
-    print(f"Warning: Failed to load model. Error: {e}")
+    print(f"Warning: Failed to load phishing model. Error: {e}")
     phishing_classifier = None
+
+try:
+    ai_classifier = pipeline(
+        "text-classification", model="roberta-base-openai-detector"
+    )
+except Exception as e:
+    print(f"Warning: Failed to load AI model. Error: {e}")
+    ai_classifier = None
 
 
 def get_severity_label(score: float) -> str:
@@ -53,9 +61,38 @@ class ThreatScoringService:
             print(f"Error during model classification: {e}")
             return 0.0
 
+    def get_ai_score(self) -> tuple[float, str]:
+        if not ai_classifier or not self.body.strip():
+            return 0.0, "AI detection model not loaded or empty body"
 
-    def generate_final_score(self, risk_increasers: list = None, risk_reducers: list = None) -> tuple[float, float, float]:
+        try:
+            text_to_analyze = self.body[:2000]
+            result = ai_classifier(text_to_analyze)[0]
+            label = str(result["label"]).lower()
+            score = float(result["score"])
+
+            # roberta-base-openai-detector outputs "Fake" for AI and "Real" for Human.
+            if "fake" in label or "ai" in label:
+                return score * 100.0, f"Detected AI-generated content ({round(score*100,1)}% confidence)"
+            else:
+                return 0.0, f"Content appears human-written ({round(score*100,1)}% confidence)"
+        except Exception as e:
+            print(f"Error during AI model classification: {e}")
+            return 0.0, f"Error: {e}"
+
+
+    def generate_final_score(self, risk_increasers: list = None, risk_reducers: list = None) -> tuple[float, float, float, float, str]:
         model_score = self.get_model_score()
+        ai_score, ai_reasoning = self.get_ai_score()
+        
+        # Add AI score penalty to increasers if high confidence
+        if ai_score >= 50.0:
+            if risk_increasers is not None:
+                risk_increasers.append({
+                    "factor": ai_reasoning,
+                    "score": 15,
+                    "category": "Content"
+                })
         
         increasers_sum = sum(item.get("score", 0) for item in (risk_increasers or []))
         reducers_sum = sum(abs(item.get("score", 0)) for item in (risk_reducers or []))
@@ -68,6 +105,6 @@ class ThreatScoringService:
 
         final_score = min(max(combined, 0.0), 100.0)
 
-        return round(final_score, 1), round(model_score, 1), round(tech_score, 1)
+        return round(final_score, 1), round(model_score, 1), round(ai_score, 1), round(tech_score, 1), ai_reasoning
 
 

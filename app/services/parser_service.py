@@ -2,8 +2,10 @@ import email
 import hashlib
 import re
 from dataclasses import dataclass
+import logging
 from email import policy
 from typing import Any
+from app.core.exceptions import EmailParsingError
 
 
 @dataclass
@@ -28,20 +30,27 @@ class EmailParserService:
         self.msg = email.message_from_bytes(raw_eml_bytes, policy=policy.default)
     
     def parse_all(self) -> ParsedEmail:
-        headers = self._extract_headers()
-        body, boundaries = self._extract_body_and_boundaries()
-        attachments = self._extract_attachments()
-        indicators = self._extract_indicators(body)
-        relay_route = self._extract_relay_route(headers.get("Received", []))
-        
-        return ParsedEmail(
-            headers=headers,
-            body=body,
-            indicators=indicators,
-            attachments=attachments,
-            mime_boundaries=boundaries,
-            relay_route=relay_route
-        )
+        try:
+            headers = self._extract_headers()
+            body, boundaries = self._extract_body_and_boundaries()
+            attachments = self._extract_attachments()
+            indicators = self._extract_indicators(body)
+            relay_route = self._extract_relay_route(headers.get("Received", []))
+            
+            if not self.msg.keys():
+                raise EmailParsingError("No valid email headers found. File may not be a valid RFC 822 email.")
+                
+            return ParsedEmail(
+                headers=headers,
+                body=body,
+                indicators=indicators,
+                attachments=attachments,
+                mime_boundaries=boundaries,
+                relay_route=relay_route
+            )
+        except Exception as e:
+            logging.error(f"Failed to parse email: {e}")
+            raise EmailParsingError(f"Malformed or invalid email file: {e}")
     
     def _extract_headers(self) -> dict[str, Any]:
         try:
@@ -50,6 +59,8 @@ class EmailParserService:
                 "Reply-To": self.msg.get("Reply-To"),
                 "Received": self.msg.get_all("Received") or [],
                 "Message-ID": self.msg.get("Message-ID"),
+                "In-Reply-To": self.msg.get("In-Reply-To"),
+                "References": self.msg.get("References"),
                 "Authentication-Results": self.msg.get("Authentication-Results"),
                 "Subject": self.msg.get("Subject"),
                 "Date": self.msg.get("Date")

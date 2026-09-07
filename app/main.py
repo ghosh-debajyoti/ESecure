@@ -4,7 +4,7 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import analyze, campaigns, attack_graph, iocs
+from app.api.routes import analyze, campaigns, attack_graph, iocs, thread, qr
 from app.core.database import Base, engine
 from app.database import init_db
 
@@ -29,6 +29,8 @@ app.add_middleware(
 )
 
 app.include_router(analyze.router, prefix="/api/v1", tags=["Analysis"])
+app.include_router(thread.router, prefix="/api/v1", tags=["thread"])
+app.include_router(qr.router, prefix="/api/v1", tags=["qr"])
 app.include_router(campaigns.router, prefix="/api/campaigns", tags=["Campaigns"])
 app.include_router(attack_graph.router, prefix="/api/attack-graph", tags=["Attack Graph"])
 app.include_router(iocs.router, prefix="/api/iocs", tags=["IOCs"])
