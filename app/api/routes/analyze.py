@@ -23,6 +23,7 @@ from app.services.translator_service import TranslatorService
 from app.services.threat_intel_service import ThreatIntelService
 from app.services.threatfox_service import ThreatFoxService
 from app.services.urlhaus_service import UrlhausService
+from app.services.opencti_service import OpenCTIService
 from app.database import get_db as get_pg_db
 from app.services.campaign_service import detect_and_store_campaign
 from app.services.report_service import ReportService
@@ -138,6 +139,7 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
         await asyncio.gather(
             ThreatFoxService.enrich_iocs(parsed.indicators, parsed.attachments),
             UrlhausService.enrich_urls(parsed.indicators),
+            OpenCTIService.enrich_iocs(parsed.indicators, parsed.attachments),
             return_exceptions=True
         )
         

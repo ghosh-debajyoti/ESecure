@@ -130,6 +130,31 @@ def get_normalized_graph(campaign_id: Optional[int] = None, db: Session = Depend
                 "relationship": "matches"
             })
             
+        # Add OpenCTI STIX nodes and edges if available
+        if ind.intel and isinstance(ind.intel, dict):
+            opencti_data = ind.intel.get("opencti_intel")
+            if opencti_data and opencti_data.get("status") == "success":
+                stix_id = opencti_data.get("id")
+                stix_type = opencti_data.get("entity_type", "Stix-Cyber-Observable")
+                stix_val = opencti_data.get("observable_value", stix_id)
+                if stix_id:
+                    stix_node_id = f"opencti-{stix_id}"
+                    # Add node only if it doesn't already exist
+                    if not any(n["id"] == stix_node_id for n in nodes):
+                        nodes.append({
+                            "id": stix_node_id,
+                            "type": "opencti_entity",
+                            "label": f"OpenCTI {stix_type}",
+                            "value": stix_val,
+                            "metadata": opencti_data
+                        })
+                    edges.append({
+                        "id": f"e-ind-{ind.id}-opencti-{stix_id}",
+                        "source": ind_node_id,
+                        "target": stix_node_id,
+                        "relationship": "enriched_by"
+                    })
+            
     # 4. Fetch Cases
     cases = db.query(Case).filter(Case.id.in_(case_ids)).all() if case_ids else []
     for case in cases:
