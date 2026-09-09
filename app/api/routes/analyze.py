@@ -2,6 +2,7 @@ import re
 import traceback
 import uuid
 import logging
+import asyncio
 from app.core.exceptions import EmailParsingError
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Response
@@ -9,7 +10,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.domain import Case, EmailEvidence
+from app.models.domain import Case, EmailEvidence, Indicator
 from app.schemas.domain import UCOCaseResponse
 from app.services.dna_service import DnaService
 from app.services.evidence_service import EvidenceService
@@ -20,6 +21,8 @@ from app.services.parser_service import EmailParserService
 from app.services.threat_scoring_service import ThreatScoringService, get_severity_label
 from app.services.translator_service import TranslatorService
 from app.services.threat_intel_service import ThreatIntelService
+from app.services.threatfox_service import ThreatFoxService
+from app.services.urlhaus_service import UrlhausService
 from app.database import get_db as get_pg_db
 from app.services.campaign_service import detect_and_store_campaign
 from app.services.report_service import ReportService
@@ -132,6 +135,12 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
                 })
 
         parsed.indicators = await ThreatIntelService.enrich_indicators(parsed.indicators)
+        await asyncio.gather(
+            ThreatFoxService.enrich_iocs(parsed.indicators, parsed.attachments),
+            UrlhausService.enrich_urls(parsed.indicators),
+            return_exceptions=True
+        )
+        
         intel_penalty = 0.0
         has_flagged_indicator = False
         for ind in parsed.indicators:
@@ -224,6 +233,25 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
             tlsh_hash=tlsh_hash
         )
         db.add(db_evidence)
+        
+        # Save Indicators with their intel
+        for ind in parsed.indicators:
+            # Safely serialize intel blocks if they exist
+            threatfox_intel = ind.get("threatfox_intel")
+            urlhaus_intel = ind.get("urlhaus_intel")
+            combined_intel = {}
+            if threatfox_intel: combined_intel["threatfox"] = threatfox_intel
+            if urlhaus_intel: combined_intel["urlhaus"] = urlhaus_intel
+            
+            db_indicator = Indicator(
+                case_id=db_case.id,
+                type=ind.get("type", "UNKNOWN"),
+                value=ind.get("value", ""),
+                malicious_confidence=1.0 if ind.get("reputation", {}).get("is_flagged", False) else 0.0,
+                intel=combined_intel if combined_intel else None
+            )
+            db.add(db_indicator)
+
         db.commit()
         db.refresh(db_case)
         

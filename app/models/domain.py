@@ -46,5 +46,6 @@ class Indicator(Base):
     type = Column(String)  # IP, URL, DOMAIN
     value = Column(String)
     malicious_confidence = Column(Float)
+    intel = Column(JSON, nullable=True)
 
     case = relationship("Case", back_populates="indicators")
