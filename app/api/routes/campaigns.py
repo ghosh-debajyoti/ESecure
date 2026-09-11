@@ -36,3 +36,7 @@ def create_campaign(name: str, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(campaign)
     return campaign
+
+@router.get("/", response_model=list[CampaignResponse])
+def get_all_campaigns(db: Session = Depends(get_db)):
+    return db.query(Campaign).all()

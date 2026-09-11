@@ -5,7 +5,7 @@ from app.core.config import settings
 
 # Handling sqlite specific check_same_thread for MVP fallback
 connect_args = (
-    {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
+    {"check_same_thread": False, "timeout": 15} if settings.DATABASE_URL.startswith("sqlite") else {}
 )
 
 engine = create_engine(settings.DATABASE_URL, connect_args=connect_args)

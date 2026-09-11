@@ -46,3 +46,7 @@ def delete_ioc(id: int, db: Session = Depends(get_db)):
     db.delete(db_ioc)
     db.commit()
     return {"detail": "IOC deleted successfully"}
+
+@router.get("/", response_model=List[IOCResponse])
+def get_all_iocs(db: Session = Depends(get_db)):
+    return db.query(IOC).all()

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "framer-mcp": {
+      "command": "npx",
+      "args": ["-y", "framer-mcp-server"],
+      "env": {
+        "FRAMER_PROJECT_URL": "https://framer.com/projects/ESECURE-AI--on8lEeGsfKihkOdizPY3-1WxSo?node=augiA20Il",
+        "FRAMER_API_KEY": "fr_64ge55ted799cs85akseyzenxm"
+      }
+    }
+  }
+}

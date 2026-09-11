@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.domain import Case, EmailEvidence, Indicator
+from app.models.campaign import Campaign
+from app.models.ioc import IOC
 from app.schemas.domain import UCOCaseResponse
 from app.services.dna_service import DnaService
 from app.services.evidence_service import EvidenceService
@@ -206,7 +208,7 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
             "sender": str(parsed.headers.get("From", "")),
             "threat_score": final_score
         }
-        campaign_info = detect_and_store_campaign(email_data, tlsh_hash, pg_db)
+        campaign_info = detect_and_store_campaign(email_data, tlsh_hash, db)
         
         if campaign_info.get("is_coordinated_campaign"):
             is_coordinated = True
@@ -236,7 +238,13 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
         )
         db.add(db_evidence)
         
-        # Save Indicators with their intel
+        
+        db_campaign = Campaign(name=f"Campaign-{case_number}")
+        db.add(db_campaign)
+        db.flush()
+        
+        # Save Indicators
+
         for ind in parsed.indicators:
             # Safely serialize intel blocks if they exist
             threatfox_intel = ind.get("threatfox_intel")
@@ -252,7 +260,18 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
                 malicious_confidence=1.0 if ind.get("reputation", {}).get("is_flagged", False) else 0.0,
                 intel=combined_intel if combined_intel else None
             )
+            
             db.add(db_indicator)
+            
+            db_ioc = IOC(
+                campaign_id=db_campaign.id,
+                type=ind.get("type", "UNKNOWN"),
+                value=ind.get("value", ""),
+                severity=severity,
+                intel=combined_intel if combined_intel else None
+            )
+            db.add(db_ioc)
+
 
         db.commit()
         db.refresh(db_case)

@@ -35,6 +35,8 @@ class IOCCreate(IOCBase):
 class IOCResponse(IOCBase):
     id: int
     timestamp: datetime
+    type: str
+    severity: str
 
     class Config:
         from_attributes = True
