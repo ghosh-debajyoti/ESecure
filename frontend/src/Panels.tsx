@@ -1,29 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchCases, fetchCase, analyzeFile, fetchIOCs, fetchAllIOCs, getExportUrl } from './api';
-
-// Styles for panels inside the hero-content
-const panelStyle: React.CSSProperties = {
-  background: 'rgba(10, 10, 15, 0.7)',
-  backdropFilter: 'blur(12px)',
-  border: '1px solid rgba(125, 160, 255, 0.2)',
-  borderRadius: '12px',
-  padding: '24px',
-  width: '100%',
-  maxWidth: '800px',
-  color: 'white',
-  pointerEvents: 'auto',
-  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-  textAlign: 'left'
-};
-
-const headerStyle: React.CSSProperties = {
-  fontSize: '24px',
-  fontWeight: '600',
-  marginBottom: '16px',
-  color: 'var(--accent)'
-};
-
-
+import './Dashboard.css';
 
 export function AnalysisResultView({ result, onNewScan }: { result: any, onNewScan?: () => void }) {
   const getScoreClass = (score: number) => {
@@ -41,114 +18,116 @@ export function AnalysisResultView({ result, onNewScan }: { result: any, onNewSc
   };
 
   return (
-    <div className="analyze-result-container">
-      <div className="analyze-result-header">
-        <div>
-          <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--white)' }}>Analysis Complete</h3>
-          <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div className="dashboard-header">
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <h3 style={{ margin: 0, fontSize: '24px', color: 'var(--white)' }}>Analysis Complete</h3>
+          <p style={{ margin: '4px 0 0', fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>
             Case: {result?.case_number} | {new Date(result?.created_at).toLocaleString()}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '12px' }}>
           <button className="nav-btn active" onClick={() => window.open(getExportUrl(result.case_number), '_blank')} style={{ padding: '8px 16px', fontSize: '12px' }}>EXPORT REPORT</button>
           {onNewScan && <button className="nav-btn" onClick={onNewScan} style={{ padding: '8px 16px', fontSize: '12px' }}>NEW SCAN</button>}
         </div>
       </div>
 
-      <div className="analyze-score-section">
-        <div className={`score-circle ${scoreClass}`}>
-          <div className="score-value">{Math.round(threatScore)}</div>
-          <div className="score-label">THREAT SCORE</div>
-        </div>
-        <div className="score-details">
-          <div className="detail-item">
-            <span className="detail-label">Status</span>
-            <span className="detail-value" style={{ textTransform: 'uppercase' }}>{result?.status || 'Processed'}</span>
+      <div className="analyze-grid">
+        {/* Left Column - Metrics */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '32px' }}>
+            <div className={`metric-value ${scoreClass}`}>{Math.round(threatScore)}</div>
+            <div className="metric-label">THREAT SCORE</div>
           </div>
-          <div className="detail-item">
-            <span className="detail-label">Severity</span>
-            <span className="detail-value" style={{ textTransform: 'uppercase', color: `var(--${scoreClass})` }}>{result?.assertion?.severity || 'Unknown'}</span>
-          </div>
-          <div className="detail-item">
-            <span className="detail-label">Classification</span>
-            <span className="detail-value" style={{ textTransform: 'uppercase', color: result?.assertion?.sender_classification === 'POSSIBLY_COMPROMISED' ? 'var(--danger)' : 'var(--text)' }}>
-              {result?.assertion?.sender_classification?.replace('_', ' ') || 'UNVERIFIED'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '24px' }}>
-        <div className="analyze-section">
-          <h4>Metadata</h4>
-          <div className="meta-list">
-            <div className="meta-row"><span>Sender:</span> <span>{getHeader('From')}</span></div>
-            <div className="meta-row"><span>Subject:</span> <span>{getHeader('Subject')}</span></div>
-            <div className="meta-row"><span>Date:</span> <span>{getHeader('Date')}</span></div>
-            <div className="meta-row"><span>Hash:</span> <span style={{ fontFamily: 'monospace', fontSize: '10px' }}>{result?.evidence_custody?.sha256_hash?.substring(0,20) || 'N/A'}...</span></div>
-          </div>
-        </div>
-
-        <div className="analyze-section">
-          <h4>AI Threat Analysis</h4>
-          <div className="meta-list">
-            <div className="meta-row"><span>AI Reasoning:</span></div>
-            {result?.assertion?.threat_score_breakdown?.ai_reasoning ? (
-              <div style={{ marginTop: '4px', fontSize: '11px', color: 'rgba(255,255,255,0.7)', lineHeight: '1.4' }}>
-                {result.assertion.threat_score_breakdown.ai_reasoning}
-              </div>
-            ) : (
-              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>No AI reasoning provided.</span>
-            )}
-            
-            <div style={{ marginTop: '12px', display: 'flex', gap: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>AI Content Model</div>
-                <div style={{ fontSize: '14px', color: 'var(--white)' }}>{(result?.assertion?.threat_score_breakdown?.ai_model_score * 100)?.toFixed(1) || 0}%</div>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>Phishing Heuristics</div>
-                <div style={{ fontSize: '14px', color: 'var(--white)' }}>{(result?.assertion?.threat_score_breakdown?.model_score * 100)?.toFixed(1) || 0}%</div>
-              </div>
+          
+          <div className="glass-card">
+            <h4>Quick Status</h4>
+            <div className="data-row">
+              <span className="data-label">Status</span>
+              <span className="data-value" style={{ textTransform: 'uppercase' }}>{result?.status || 'Processed'}</span>
+            </div>
+            <div className="data-row">
+              <span className="data-label">Severity</span>
+              <span className="data-value" style={{ textTransform: 'uppercase', color: `var(--${scoreClass})` }}>{result?.assertion?.severity || 'Unknown'}</span>
+            </div>
+            <div className="data-row">
+              <span className="data-label">Classification</span>
+              <span className="data-value" style={{ textTransform: 'uppercase', color: result?.assertion?.sender_classification === 'POSSIBLY_COMPROMISED' ? 'var(--danger)' : 'var(--text)' }}>
+                {result?.assertion?.sender_classification?.replace('_', ' ') || 'UNVERIFIED'}
+              </span>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="analyze-section" style={{ marginTop: '16px' }}>
-        <h4>Explainable Threat Scoring</h4>
-        {(!result?.assertion?.risk_increasers?.length && !result?.assertion?.risk_reducers?.length) ? (
-          <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>No significant threat factors found.</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
-            {result?.assertion?.risk_increasers?.map((r: any, i: number) => (
-              <div key={`inc-${i}`} style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.2)', padding: '8px 12px', borderRadius: '4px', fontSize: '12px' }}>
-                <span style={{ color: 'var(--white)' }}>[{r.category}] {r.factor}</span>
-                <span style={{ color: 'var(--danger)', fontWeight: 'bold' }}>+{r.score}</span>
-              </div>
-            ))}
-            {result?.assertion?.risk_reducers?.map((r: any, i: number) => (
-              <div key={`dec-${i}`} style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(52,199,89,0.1)', border: '1px solid rgba(52,199,89,0.2)', padding: '8px 12px', borderRadius: '4px', fontSize: '12px' }}>
-                <span style={{ color: 'var(--white)' }}>[{r.category}] {r.factor}</span>
-                <span style={{ color: 'var(--success, #34c759)', fontWeight: 'bold' }}>{r.score}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+        {/* Right Column - Details */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="grid-2-col">
+            <div className="glass-card">
+              <h4>Email Metadata</h4>
+              <div className="data-row"><span className="data-label">Sender:</span> <span className="data-value">{getHeader('From')}</span></div>
+              <div className="data-row"><span className="data-label">Subject:</span> <span className="data-value">{getHeader('Subject')}</span></div>
+              <div className="data-row"><span className="data-label">Date:</span> <span className="data-value">{getHeader('Date')}</span></div>
+              <div className="data-row"><span className="data-label">Hash:</span> <span className="data-value" style={{ fontFamily: 'monospace', fontSize: '11px' }}>{result?.evidence_custody?.sha256_hash?.substring(0,20) || 'N/A'}...</span></div>
+            </div>
 
-      {result?.property?.indicators && result.property.indicators.length > 0 && (
-        <div className="analyze-section" style={{ marginTop: '16px' }}>
-          <h4>Extracted Indicators ({result.property.indicators.length})</h4>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
-            {result.property.indicators.map((ioc: any, i: number) => (
-              <span key={i} style={{ background: 'rgba(125,160,255,0.1)', border: '1px solid rgba(125,160,255,0.2)', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontFamily: 'monospace' }}>
-                {ioc.value || ioc.indicator}
-              </span>
-            ))}
+            <div className="glass-card">
+              <h4>AI Threat Analysis</h4>
+              <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', lineHeight: '1.5', marginBottom: '16px' }}>
+                {result?.assertion?.threat_score_breakdown?.ai_reasoning || 'No AI reasoning provided.'}
+              </div>
+              <div style={{ display: 'flex', gap: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>AI Content Model</div>
+                  <div style={{ fontSize: '18px', color: 'var(--white)', fontWeight: 600 }}>{(result?.assertion?.threat_score_breakdown?.ai_model_score * 100)?.toFixed(1) || 0}%</div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>Phishing Heuristics</div>
+                  <div style={{ fontSize: '18px', color: 'var(--white)', fontWeight: 600 }}>{(result?.assertion?.threat_score_breakdown?.model_score * 100)?.toFixed(1) || 0}%</div>
+                </div>
+              </div>
+            </div>
           </div>
+
+          <div className="glass-card">
+            <h4>Explainable Threat Scoring</h4>
+            {(!result?.assertion?.risk_increasers?.length && !result?.assertion?.risk_reducers?.length) ? (
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>No significant threat factors found.</p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {result?.assertion?.risk_increasers?.map((r: any, i: number) => (
+                    <div key={`inc-${i}`} style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,95,84,0.1)', border: '1px solid rgba(255,95,84,0.2)', padding: '12px', borderRadius: '6px', fontSize: '13px' }}>
+                      <span style={{ color: 'var(--white)' }}>[{r.category}] {r.factor}</span>
+                      <span style={{ color: 'var(--danger)', fontWeight: 'bold' }}>+{r.score}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {result?.assertion?.risk_reducers?.map((r: any, i: number) => (
+                    <div key={`dec-${i}`} style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(47,201,65,0.1)', border: '1px solid rgba(47,201,65,0.2)', padding: '12px', borderRadius: '6px', fontSize: '13px' }}>
+                      <span style={{ color: 'var(--white)' }}>[{r.category}] {r.factor}</span>
+                      <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>{r.score}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {result?.property?.indicators && result.property.indicators.length > 0 && (
+            <div className="glass-card">
+              <h4>Extracted Indicators ({result.property.indicators.length})</h4>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {result.property.indicators.map((ioc: any, i: number) => (
+                  <span key={i} style={{ background: 'rgba(125,160,255,0.1)', border: '1px solid rgba(125,160,255,0.2)', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontFamily: 'monospace' }}>
+                    {ioc.value || ioc.indicator}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -174,21 +153,21 @@ export function AnalyzePanel() {
   };
 
   return (
-    <div style={panelStyle}>
-      <h2 style={headerStyle}>Analyze Email (.eml)</h2>
-      
-      {!result && (
-        <div className="file-upload-container" style={{ marginBottom: '16px' }}>
-          <input type="file" accept=".eml" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-          <button className="btn-primary" onClick={handleAnalyze} disabled={!file || loading}>
-            {loading ? 'ANALYZING...' : 'START ANALYSIS'}
-          </button>
-        </div>
+    <div className="dashboard-container dashboard-panel">
+      {!result ? (
+        <>
+          <h2 className="dashboard-header">Analyze Email (.eml)</h2>
+          <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <input type="file" accept=".eml" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+            <button className="btn-primary" onClick={handleAnalyze} disabled={!file || loading}>
+              {loading ? 'ANALYZING...' : 'START ANALYSIS'}
+            </button>
+          </div>
+          {error && <div style={{ color: 'var(--danger)', marginTop: '16px', fontSize: '14px' }}>{error}</div>}
+        </>
+      ) : (
+        <AnalysisResultView result={result} onNewScan={() => { setFile(null); setResult(null); }} />
       )}
-
-      {error && <div style={{ color: 'var(--danger)', marginTop: '16px', fontSize: '14px' }}>{error}</div>}
-
-      {result && <AnalysisResultView result={result} onNewScan={() => { setFile(null); setResult(null); }} />}
     </div>
   );
 }
@@ -219,51 +198,59 @@ export function CasesPanel() {
     setCaseDetailLoading(false);
   };
 
-  if (selectedCase) {
-    return (
-      <div style={panelStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
-          <button className="btn-secondary" onClick={() => setSelectedCase(null)} style={{ padding: '6px 12px', fontSize: '12px' }}>
-            ← BACK TO CASES
-          </button>
-        </div>
-        <AnalysisResultView result={selectedCase} />
-      </div>
-    );
-  }
-
   return (
-    <div style={panelStyle}>
-      <h2 style={headerStyle}>Platform Cases</h2>
-      {error && <div style={{ color: 'var(--danger)', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
+    <div className="dashboard-container dashboard-panel">
+      <div className="dashboard-header">
+        Platform Cases
+        {selectedCase && (
+          <button className="btn-secondary" onClick={() => setSelectedCase(null)} style={{ padding: '6px 12px', fontSize: '12px' }}>
+            ← BACK TO LIST
+          </button>
+        )}
+      </div>
+      
+      {error && <div style={{ color: 'var(--danger)', fontSize: '14px' }}>{error}</div>}
       
       {loading ? <p>Loading cases...</p> : (
-        <div className="cases-list">
-          {cases.length === 0 && !error ? (
-            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '32px', textAlign: 'center', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.2)' }}>
-               <h4 style={{ color: 'var(--white)', margin: '0 0 8px 0' }}>No Cases Found</h4>
-               <p style={{ color: 'rgba(255,255,255,0.5)', margin: 0, fontSize: '14px' }}>Upload an email in the Analyze tab to generate a new case.</p>
-            </div>
-          ) : cases.map((c: any, i) => (
-            <div key={i} className="case-list-item" onClick={() => handleSelectCase(c.case_number || c.id)}>
-              <div className="case-main">
-                <span className="case-id">{c.case_number || c.id}</span>
-                <span className="case-subject">{c.subject || 'No Subject'}</span>
+        <div className="split-pane">
+          <div className="pane-left">
+            {cases.length === 0 && !error ? (
+              <div className="glass-card" style={{ textAlign: 'center' }}>
+                 <h4 style={{ color: 'var(--white)', margin: '0 0 8px 0' }}>No Cases Found</h4>
+                 <p style={{ color: 'rgba(255,255,255,0.5)', margin: 0, fontSize: '14px' }}>Upload an email to generate a new case.</p>
               </div>
-              <div className="case-meta">
-                <span className="case-sender">{c.sender}</span>
-                <span className="case-date">{new Date(c.created_at).toLocaleString()}</span>
+            ) : cases.map((c: any, i) => (
+              <div key={i} className="compact-card" onClick={() => handleSelectCase(c.case_number || c.id)} style={{ borderColor: selectedCase?.case_number === (c.case_number || c.id) ? 'var(--accent)' : '' }}>
+                <div className="compact-header">
+                  <span className="compact-title">{c.case_number || c.id}</span>
+                  <span className={`badge-solid ${c.threat_score >= 80 ? 'badge-danger' : c.threat_score >= 40 ? 'badge-warning' : 'badge-success'}`}>SCORE: {Number(c.threat_score || 0).toFixed(0)}</span>
+                </div>
+                <div className="compact-meta">{c.subject || 'No Subject'}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>
+                  <span>{new Date(c.created_at).toLocaleDateString()}</span>
+                  <span>{String(c.status || 'UNKNOWN').toUpperCase()}</span>
+                </div>
               </div>
-              <div className="case-status">
-                <span className={`badge ${c.threat_score >= 80 ? 'danger' : ''}`}>SCORE: {Number(c.threat_score || 0).toFixed(0)}</span>
-                <span className="badge">{String(c.status || 'UNKNOWN').toUpperCase()}</span>
+            ))}
+          </div>
+
+          <div className="pane-right">
+            {caseDetailLoading ? (
+              <div className="glass-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
+                Loading case details...
               </div>
-            </div>
-          ))}
+            ) : selectedCase ? (
+              <div className="glass-card" style={{ overflowY: 'auto' }}>
+                <AnalysisResultView result={selectedCase} />
+              </div>
+            ) : (
+              <div className="glass-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)' }}>
+                Select a case from the list to view details
+              </div>
+            )}
+          </div>
         </div>
       )}
-      
-      {caseDetailLoading && <div style={{ marginTop: '16px', color: 'var(--accent)' }}>Loading case details...</div>}
     </div>
   );
 }
@@ -273,13 +260,13 @@ import { AttackGraph } from './AttackGraph';
 
 export function AttackGraphPanel() {
   return (
-    <div style={panelStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h2 style={{ ...headerStyle, marginBottom: 0 }}>Attack Graph</h2>
+    <div className="dashboard-container dashboard-panel">
+      <div className="dashboard-header">Attack Graph</div>
+      <div className="attack-graph-dashboard">
+        <ErrorBoundary fallbackMessage="The Attack Graph encountered an error during layout physics simulation. Please try again.">
+          <AttackGraph />
+        </ErrorBoundary>
       </div>
-      <ErrorBoundary fallbackMessage="The Attack Graph encountered an error during layout physics simulation. Please try again.">
-        <AttackGraph />
-      </ErrorBoundary>
     </div>
   );
 }
@@ -297,35 +284,40 @@ export function IOCsPanel() {
   }, []);
 
   return (
-    <div style={panelStyle}>
-      <h2 style={headerStyle}>Indicators of Compromise</h2>
-      {error && <div style={{ color: 'var(--danger)', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
+    <div className="dashboard-container dashboard-panel">
+      <h2 className="dashboard-header">Threat Intelligence Data Grid</h2>
+      {error && <div style={{ color: 'var(--danger)', fontSize: '14px' }}>{error}</div>}
       {loading ? <p>Loading IOCs...</p> : iocs.length === 0 ? (
-        <div style={{ background: 'rgba(255,255,255,0.05)', padding: '32px', textAlign: 'center', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.2)' }}>
+        <div className="glass-card" style={{ textAlign: 'center' }}>
            <h4 style={{ color: 'var(--white)', margin: '0 0 8px 0' }}>No IOCs Found</h4>
-           <p style={{ color: 'rgba(255,255,255,0.5)', margin: 0, fontSize: '14px' }}>Upload an email in the Analyze tab to generate indicators.</p>
+           <p style={{ color: 'rgba(255,255,255,0.5)', margin: 0, fontSize: '14px' }}>Upload an email to generate indicators.</p>
         </div>
       ) : (
-        <div className="cases-list">
-          {iocs.map((ioc: any) => (
-            <div key={ioc.id} className="case-list-item">
-              <div className="case-main">
-                <span className="case-id" style={{ fontFamily: 'monospace' }}>{ioc.value}</span>
-                <span className="case-subject" style={{ color: (ioc.severity?.toLowerCase() === 'critical' || ioc.severity?.toLowerCase() === 'high') ? 'var(--danger)' : 'var(--accent)' }}>
-                  {ioc.severity?.toUpperCase() || 'UNKNOWN'}
-                </span>
-              </div>
-              <div className="case-meta">
-                <span>{ioc.type?.toUpperCase() || 'UNKNOWN'}</span>
-                <span>{new Date(ioc.timestamp || ioc.created_at).toLocaleString()}</span>
-              </div>
-              {ioc.description && (
-                <div style={{ marginTop: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.7)', borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: '8px' }}>
-                  {ioc.description}
+        <div className="ioc-grid">
+          {iocs.map((ioc: any) => {
+            const isDanger = ioc.severity?.toLowerCase() === 'critical' || ioc.severity?.toLowerCase() === 'high';
+            return (
+              <div key={ioc.id} className="ioc-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <span className={`badge-solid ${ioc.type === 'domain' ? 'badge-warning' : ioc.type === 'ipv4-addr' ? 'badge-info' : 'badge-danger'}`}>
+                    {ioc.type?.toUpperCase() || 'UNKNOWN'}
+                  </span>
+                  <span className={`badge-solid ${isDanger ? 'badge-danger' : 'badge-info'}`}>
+                    {ioc.severity?.toUpperCase() || 'UNKNOWN'}
+                  </span>
                 </div>
-              )}
-            </div>
-          ))}
+                <div className="ioc-value">{ioc.value}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: 'auto' }}>
+                  <span>{new Date(ioc.timestamp || ioc.created_at).toLocaleString()}</span>
+                </div>
+                {ioc.description && (
+                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px' }}>
+                    {ioc.description}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -336,6 +328,7 @@ export function ReportsPanel() {
   const [cases, setCases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCase, setSelectedCase] = useState<any>(null);
 
   useEffect(() => {
     fetchCases()
@@ -349,45 +342,47 @@ export function ReportsPanel() {
   };
 
   return (
-    <div style={panelStyle}>
-      <h2 style={headerStyle}>Forensic Reports</h2>
-      {error && <div style={{ color: 'var(--danger)', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
-      {loading ? <p>Loading available cases for export...</p> : cases.length === 0 ? (
-        <div style={{ background: 'rgba(255,255,255,0.05)', padding: '32px', textAlign: 'center', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.2)' }}>
-           <h4 style={{ color: 'var(--white)', margin: '0 0 8px 0' }}>No Cases Available</h4>
-           <p style={{ color: 'rgba(255,255,255,0.5)', margin: 0, fontSize: '14px' }}>Upload an email in the Analyze tab to generate a forensic report.</p>
-        </div>
-      ) : (
-        <div className="cases-list">
-          {cases.map((c: any) => (
-            <div key={c.id} className="case-list-item" onClick={() => handleExport(c.case_number)}>
-              <div className="case-main">
-                <span className="case-id">{c.case_number}</span>
-                <span className="case-subject">{c.subject || 'Unknown Subject'}</span>
+    <div className="dashboard-container dashboard-panel">
+      <h2 className="dashboard-header">Forensic Report Workspace</h2>
+      {error && <div style={{ color: 'var(--danger)', fontSize: '14px' }}>{error}</div>}
+      
+      {loading ? <p>Loading available cases for export...</p> : (
+        <div className="split-pane">
+          <div className="pane-left">
+            {cases.length === 0 && !error ? (
+              <div className="glass-card" style={{ textAlign: 'center' }}>
+                 <h4 style={{ color: 'var(--white)', margin: '0 0 8px 0' }}>No Cases Available</h4>
+                 <p style={{ color: 'rgba(255,255,255,0.5)', margin: 0, fontSize: '14px' }}>Upload an email to generate a forensic report.</p>
               </div>
-              <div className="case-meta">
-                <span>{c.sender || 'Unknown Sender'}</span>
-                <span>{new Date(c.created_at).toLocaleString()}</span>
+            ) : cases.map((c: any, i) => (
+              <div key={i} className="compact-card" onClick={() => setSelectedCase(c)} style={{ borderColor: selectedCase?.id === c.id ? 'var(--accent)' : '' }}>
+                <div className="compact-header">
+                  <span className="compact-title">{c.case_number}</span>
+                  <span className={`badge-solid ${c.threat_score >= 80 ? 'badge-danger' : c.threat_score >= 40 ? 'badge-warning' : 'badge-success'}`}>SCORE: {c.threat_score}</span>
+                </div>
+                <div className="compact-meta">{c.subject || 'Unknown Subject'}</div>
               </div>
-              <div className="case-status">
-                <span style={{ color: c.threat_score >= 80 ? 'var(--danger)' : c.threat_score >= 40 ? '#ff9f0a' : 'var(--accent)' }}>
-                  Score: {c.threat_score}
-                </span>
-                <span style={{ 
-                  display: 'inline-block',
-                  padding: '4px 12px',
-                  background: 'var(--accent)',
-                  color: 'var(--bg)',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  textTransform: 'uppercase'
-                }}>
-                  Export PDF
-                </span>
+            ))}
+          </div>
+
+          <div className="pane-right">
+            {selectedCase ? (
+              <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '24px' }}>
+                <div>
+                  <h3 style={{ fontSize: '24px', margin: '0 0 8px 0', color: 'var(--white)' }}>{selectedCase.case_number}</h3>
+                  <p style={{ margin: 0, color: 'var(--secondary)' }}>{selectedCase.subject || 'No Subject'}</p>
+                  <p style={{ margin: '8px 0 0', color: 'var(--muted)', fontSize: '13px' }}>Created: {new Date(selectedCase.created_at).toLocaleString()}</p>
+                </div>
+                <button className="nav-btn active" onClick={() => handleExport(selectedCase.case_number)} style={{ padding: '12px 32px', fontSize: '16px', marginTop: '16px' }}>
+                  EXPORT FORENSIC PDF
+                </button>
               </div>
-            </div>
-          ))}
+            ) : (
+              <div className="glass-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)' }}>
+                Select a case from the list to preview export options
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

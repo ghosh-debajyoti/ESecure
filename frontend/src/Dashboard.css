@@ -1,0 +1,227 @@
+/* Dashboard.css - Scoped styles for Post-Analysis Panels ONLY */
+
+.dashboard-container {
+  width: 90vw;
+  max-width: 1400px;
+  margin: 0 auto;
+  color: var(--white);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.dashboard-panel {
+  background: rgba(10, 15, 26, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(125, 160, 255, 0.15);
+  border-radius: 12px;
+  padding: 32px;
+  width: 100%;
+  pointer-events: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dashboard-header {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--accent);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Glass Card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.glass-card h4 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: var(--secondary);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Grid Layouts */
+.grid-2-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.grid-3-col {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+/* Analyze Panel Overrides */
+.analyze-grid {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 24px;
+}
+
+/* Top Metrics */
+.metrics-row {
+  display: flex;
+  gap: 24px;
+}
+
+.metric-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.metric-value {
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.metric-value.critical { color: var(--danger); text-shadow: 0 0 16px rgba(255,95,84,0.4); }
+.metric-value.high { color: #ff9f0a; }
+.metric-value.medium { color: #ffd60a; }
+.metric-value.low { color: var(--success); }
+
+.metric-label {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Split Pane for Cases & Reports */
+.split-pane {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 24px;
+  height: 600px;
+}
+
+.pane-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.pane-right {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.pane-right .glass-card {
+  height: 100%;
+}
+
+/* Compact Case Cards */
+.compact-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.compact-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(125, 160, 255, 0.3);
+}
+
+.compact-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.compact-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--white);
+}
+.compact-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Badges */
+.badge-solid {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.badge-danger { background: rgba(255, 95, 84, 0.2); color: var(--danger); border: 1px solid rgba(255, 95, 84, 0.4); }
+.badge-warning { background: rgba(255, 159, 10, 0.2); color: #ff9f0a; border: 1px solid rgba(255, 159, 10, 0.4); }
+.badge-info { background: rgba(125, 160, 255, 0.2); color: var(--accent); border: 1px solid rgba(125, 160, 255, 0.4); }
+.badge-success { background: rgba(47, 201, 65, 0.2); color: var(--success); border: 1px solid rgba(47, 201, 65, 0.4); }
+
+/* IOC Data Grid */
+.ioc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.ioc-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ioc-value {
+  font-family: monospace;
+  font-size: 14px;
+  color: var(--white);
+  word-break: break-all;
+}
+
+/* Data lists inside cards */
+.data-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 13px;
+}
+.data-row:last-child {
+  border-bottom: none;
+}
+.data-label { color: var(--muted); }
+.data-value { color: var(--white); font-weight: 500; text-align: right; }
+
+/* Attack Graph Container Override */
+.attack-graph-dashboard {
+  height: 700px;
+  width: 100%;
+  position: relative;
+  background: #05060A; /* dark background for the graph */
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
