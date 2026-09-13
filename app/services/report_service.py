@@ -155,11 +155,17 @@ class ReportService:
         created_at = case_data.get("created_at", "N/A")
         status = case_data.get("status", "open").upper()
         
+        fraud_type = get_nested(case_data, "assertion", "fraud_type")
+        
         meta_table_data = [
             [Paragraph("<b>Case ID:</b>", body_style), Paragraph(case_num, code_style), Paragraph("<b>Status:</b>", body_style), Paragraph(status, body_style)],
-            [Paragraph("<b>Analysis Date:</b>", body_style), Paragraph(str(created_at), body_style), Paragraph("<b>Overall Threat Score:</b>", body_style), Paragraph(f"<b><font color='{sev_color.hexval()}'>{score:.1f} / 100 ({severity})</font></b>", body_style)],
-            [Paragraph("<b>Explanation Mode:</b>", body_style), Paragraph(explanation_mode.upper(), body_style), Paragraph("<b>Privacy Mode:</b>", body_style), Paragraph("ENABLED" if privacy_mode else "DISABLED", body_style)]
+            [Paragraph("<b>Analysis Date:</b>", body_style), Paragraph(str(created_at), body_style), Paragraph("<b>Overall Threat Score:</b>", body_style), Paragraph(f"<b><font color='{sev_color.hexval()}'>{score:.1f} / 100 ({severity})</font></b>", body_style)]
         ]
+        
+        if fraud_type:
+            meta_table_data.append([Paragraph("<b>Fraud Type:</b>", body_style), Paragraph(str(fraud_type).upper(), body_style), Paragraph("<b>Explanation Mode:</b>", body_style), Paragraph(explanation_mode.upper(), body_style)])
+        else:
+            meta_table_data.append([Paragraph("<b>Explanation Mode:</b>", body_style), Paragraph(explanation_mode.upper(), body_style), Paragraph("<b>Privacy Mode:</b>", body_style), Paragraph("ENABLED" if privacy_mode else "DISABLED", body_style)])
         t_meta = Table(meta_table_data, colWidths=[110, 160, 110, 160])
         t_meta.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,-1), BG_LIGHT),

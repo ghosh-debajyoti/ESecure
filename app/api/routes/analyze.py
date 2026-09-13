@@ -34,6 +34,7 @@ from app.services.attachment_service import AttachmentService
 from app.services.thread_service import ThreadContinuityService
 from app.services.image_service import ImageAnalysisService
 from app.services.spoofed_service import SpoofedAccountService
+from app.services.fraud_type_service import FraudTypeService
 from app.models import EmailAnalysis
 
 router = APIRouter()
@@ -185,6 +186,10 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
         final_score, phishing_model_score, ai_model_score, tech_score, ai_reasoning = scoring_svc.generate_final_score(risk_increasers, risk_reducers)
         severity = get_severity_label(final_score)
 
+        # Detect Fraud Type using heuristic classifier
+        subject_header = str(parsed.headers.get("Subject") or "")
+        fraud_type = FraudTypeService.classify_fraud_type(parsed.body, subject_header)
+
         # 5. Graph
         graph = GraphService.generate_stix_graph(parsed.indicators, infra_intel, is_coordinated, parsed.relay_route, parsed.attachments)
         
@@ -299,7 +304,8 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
             sha256_hash=sha256_hash,
             risk_increasers=risk_increasers,
             risk_reducers=risk_reducers,
-            sender_classification=sender_classification
+            sender_classification=sender_classification,
+            fraud_type=fraud_type
         )
         
         # Update postgres DB with uco_data for reports
@@ -383,7 +389,8 @@ async def get_cases(limit: int = 50, pg_db: Session = Depends(get_pg_db)):
             "sender": r.sender,
             "threat_score": r.threat_score,
             "created_at": r.created_at,
-            "status": r.uco_data.get("status", "open") if r.uco_data else "open"
+            "status": r.uco_data.get("status", "open") if r.uco_data else "open",
+            "fraud_type": r.uco_data.get("assertion", {}).get("fraud_type") if r.uco_data else None
         } for r in records]
     except Exception as e:
         error_id = str(uuid.uuid4())

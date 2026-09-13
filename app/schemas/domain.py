@@ -25,6 +25,7 @@ class AssertionBase(BaseModel):
     risk_increasers: list[dict[str, Any]] = []
     risk_reducers: list[dict[str, Any]] = []
     sender_classification: str = "UNKNOWN"
+    fraud_type: str | None = None
 
 
 class EvidenceCustodyBase(BaseModel):

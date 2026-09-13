@@ -246,6 +246,21 @@
   pointer-events: auto;
 }
 
+.threat-sphere-container.bg-mode {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -2;
+  pointer-events: none !important;
+  opacity: 0.15;
+}
+
+.threat-sphere-container.bg-mode > div {
+  pointer-events: none !important;
+}
+
 /* Node Tooltips */
 .node-tooltip {
   background: rgba(10, 10, 10, 0.85);
@@ -755,4 +770,130 @@
   }
 
   /* Hide all intel to prevent overlap */
+}
+/* Dashboard Shell Layout */
+.dashboard-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background: var(--bg);
+  overflow: hidden;
+  position: relative;
+}
+
+.dashboard-bg-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.dashboard-sidebar {
+  width: 72px;
+  background: rgba(10, 15, 26, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.sidebar-logo {
+  font-family: Orbitron, Inter, sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #a2baf5 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 40px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  align-items: center;
+}
+
+.sidebar-bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.sidebar-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sidebar-btn:hover {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-btn.active {
+  color: var(--accent);
+  background: rgba(125, 160, 255, 0.1);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.dashboard-main-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 810px) {
+  .dashboard-layout {
+    flex-direction: column;
+  }
+  
+  .dashboard-sidebar {
+    width: 100%;
+    height: 64px;
+    flex-direction: row;
+    padding: 0 16px;
+    border-right: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    order: 2; /* Move to bottom */
+  }
+
+  .sidebar-logo {
+    display: none;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .sidebar-bottom {
+    margin-top: 0;
+    margin-left: auto;
+    width: auto;
+  }
 }
