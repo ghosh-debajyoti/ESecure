@@ -18,7 +18,8 @@ class TranslatorService:
                    sha256_hash: str, severity: str = "LOW",
                    risk_increasers: list[dict[str, Any]] = None,
                    risk_reducers: list[dict[str, Any]] = None,
-                   sender_classification: str = "UNKNOWN") -> dict[str, Any]:
+                   sender_classification: str = "UNKNOWN",
+                   fraud_type: str = "Other/Unclassified") -> dict[str, Any]:
                    
         trace = TraceBase(headers=headers, relay_route=relay_route, body=body)
         prop = PropertyBase(indicators=indicators, attachments=attachments, mime_boundaries=mime_boundaries, tlsh_hash=tlsh_hash)
@@ -31,7 +32,8 @@ class TranslatorService:
             technical_flags=technical_flags,
             risk_increasers=risk_increasers or [],
             risk_reducers=risk_reducers or [],
-            sender_classification=sender_classification
+            sender_classification=sender_classification,
+            fraud_type=fraud_type
         )
         evidence = EvidenceCustodyBase(sha256_hash=sha256_hash)
         

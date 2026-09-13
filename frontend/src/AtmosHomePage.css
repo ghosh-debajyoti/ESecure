@@ -56,6 +56,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
   padding: 18px 36px;
   background: rgba(13, 13, 13, 0.72);
   backdrop-filter: blur(16px);
@@ -497,9 +498,8 @@
 .nav-center {
   display: flex;
   gap: 24px;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  flex: 1;
+  justify-content: center;
 }
 
 .nav-btn {
@@ -513,6 +513,7 @@
   border-radius: 6px;
   transition: all 0.2s;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .nav-btn:hover {

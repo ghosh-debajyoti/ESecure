@@ -56,6 +56,9 @@ class EmailParserService:
         try:
             return {
                 "From": self.msg.get("From"),
+                "To": self.msg.get("To"),
+                "Delivered-To": self.msg.get("Delivered-To"),
+                "X-Original-To": self.msg.get("X-Original-To"),
                 "Reply-To": self.msg.get("Reply-To"),
                 "Received": self.msg.get_all("Received") or [],
                 "Message-ID": self.msg.get("Message-ID"),

@@ -35,6 +35,7 @@ from app.services.thread_service import ThreadContinuityService
 from app.services.image_service import ImageAnalysisService
 from app.services.spoofed_service import SpoofedAccountService
 from app.services.fraud_type_service import FraudTypeService
+from app.services.target_service import TargetService
 from app.models import EmailAnalysis
 
 router = APIRouter()
@@ -281,6 +282,9 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
         db.commit()
         db.refresh(db_case)
         
+        # 8. Target Inference
+        target_info = TargetService.infer_target_info(parsed.headers)
+
         # 7. Translator to UCO
         uco_format = TranslatorService.map_to_uco(
             headers=parsed.headers,
@@ -307,6 +311,9 @@ async def analyze_email(file: UploadFile = File(...), db: Session = Depends(get_
             sender_classification=sender_classification,
             fraud_type=fraud_type
         )
+        
+        # Inject target info directly into the UCO structure
+        uco_format["trace"]["target_info"] = target_info
         
         # Update postgres DB with uco_data for reports
         try:

@@ -159,9 +159,11 @@ function ThreatSphere3D({ isBackground = false }: { isBackground?: boolean }) {
 }
 
 import { AnalyzePanel, CasesPanel, AttackGraphPanel, IOCsPanel, ReportsPanel } from "./Panels";
+import { useNavigate } from "react-router-dom";
 
 export function AtmosHomePage() {
   const [activeTab, setActiveTab] = useState("HOME");
+  const navigate = useNavigate();
 
   const sparks = useMemo(
     () =>
@@ -231,6 +233,19 @@ export function AtmosHomePage() {
               System active
             </span>
             <PrimaryButton onClick={() => setActiveTab("ANALYZE")}>NEW SCAN</PrimaryButton>
+            <div className="flex-row" style={{ background: 'rgba(0,0,0,0.5)', padding: '4px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', marginLeft: '16px' }}>
+              <button 
+                style={{ padding: '6px 12px', background: 'var(--accent)', border: 'none', color: 'white', cursor: 'default', fontSize: '12px', fontWeight: 600, borderRadius: '4px' }}
+              >
+                REGULAR MODE
+              </button>
+              <button 
+                onClick={() => navigate("/business")} 
+                style={{ padding: '6px 12px', background: 'transparent', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, borderRadius: '4px' }}
+              >
+                BUSINESS MODE
+              </button>
+            </div>
           </div>
         </header>
 
@@ -277,6 +292,22 @@ export function AtmosHomePage() {
       {/* Background Sphere fixed behind everything */}
       <div className="dashboard-bg-layer">
         <ThreatSphere3D isBackground />
+      </div>
+
+      <div style={{ position: 'absolute', top: '16px', right: '24px', zIndex: 100 }}>
+        <div className="flex-row" style={{ background: 'rgba(0,0,0,0.5)', padding: '4px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <button 
+            style={{ padding: '6px 12px', background: 'var(--accent)', border: 'none', color: 'white', cursor: 'default', fontSize: '12px', fontWeight: 600, borderRadius: '4px' }}
+          >
+            REGULAR MODE
+          </button>
+          <button 
+            onClick={() => navigate("/business")} 
+            style={{ padding: '6px 12px', background: 'transparent', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, borderRadius: '4px' }}
+          >
+            BUSINESS MODE
+          </button>
+        </div>
       </div>
 
       <DashboardSidebar />

@@ -211,32 +211,210 @@ export function AnalyzePanel() {
     setLoading(false);
   };
 
+  const getHeader = (key: string) => {
+    return result?.trace?.headers?.[key] || 'Not available';
+  };
+
+  const getIndicators = (type: string) => {
+    if (!result?.property?.indicators) return [];
+    return result.property.indicators.filter((i: any) => i.type === type);
+  };
+
+  const aiScore = result?.assertion?.threat_score_breakdown?.ai_model_score * 100 || null;
+
   return (
     <div className="dashboard-container dashboard-panel flex-col" style={{ gap: '24px' }}>
-      {!result && (
-        <div className="card-grid" style={{ marginBottom: '16px' }}>
-          <IntelIndicator docked label="THREAT SCORE" value="98/100" danger />
-          <IntelIndicator docked label="AUTH PROTOCOLS" value="SPF/DKIM: FAIL" danger />
-          <IntelIndicator docked label="IOC DETECTED" value="12" danger />
-          <IntelIndicator docked label="CAMPAIGN CORRELATED" value="APT-29" />
-          <IntelIndicator docked label="FORENSIC STATUS" value="READY" />
-        </div>
-      )}
+      
+      {/* 1. TOP: Compact real-time analysis summary */}
+      <div className="card-grid" style={{ marginBottom: '8px' }}>
+        <IntelIndicator docked label="THREAT SCORE" 
+          value={result ? `${result.assertion?.threat_score || 0}/100` : "—"} 
+          danger={result?.assertion?.threat_score >= 60} 
+        />
+        <IntelIndicator docked label="AUTHENTICATION" 
+          value={result ? (result.property?.authentication_status || "Not available") : "—"} 
+        />
+        <IntelIndicator docked label="IOCs DETECTED" 
+          value={result ? (result.property?.indicators?.length || 0).toString() : "—"} 
+          danger={result && result.property?.indicators?.length > 0} 
+        />
+        <IntelIndicator docked label="CAMPAIGN" 
+          value={result ? (result.assertion?.campaign || "Not available") : "—"} 
+        />
+        <IntelIndicator docked label="FORENSIC STATUS" 
+          value={result ? (result.status || "PROCESSED") : "READY / WAITING FOR EMAIL"} 
+        />
+      </div>
 
-      {!result ? (
-        <div className="glass-card flex-col" style={{ gap: '16px' }}>
-          <h2 className="dashboard-header" style={{ margin: 0, border: 'none' }}>Analyze Email (.eml)</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <input type="file" accept=".eml" onChange={(e) => setFile(e.target.files?.[0] || null)} style={{ flex: 1, padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px dashed rgba(255,255,255,0.2)', borderRadius: '8px', color: 'var(--white)' }} />
-            <button className="btn-primary" onClick={handleAnalyze} disabled={!file || loading}>
-              {loading ? 'ANALYZING...' : 'START ANALYSIS'}
+      {/* 2. BELOW: Large primary EMAIL ANALYSIS / UPLOAD panel */}
+      <div className="glass-card flex-col" style={{ gap: '16px', border: '1px solid var(--accent)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ margin: 0, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--white)' }}>
+            <Mail size={18} className="text-accent" />
+            Email Analysis & Upload
+          </h2>
+          {result && (
+            <button className="btn-secondary" onClick={() => { setFile(null); setResult(null); }} style={{ padding: '6px 12px', fontSize: '12px' }}>
+              NEW SCAN
             </button>
-          </div>
-          {error && <div style={{ color: 'var(--danger)', marginTop: '8px', fontSize: '14px' }}>{error}</div>}
+          )}
         </div>
-      ) : (
-        <AnalysisResultView result={result} onNewScan={() => { setFile(null); setResult(null); }} />
-      )}
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <input 
+            type="file" 
+            accept=".eml" 
+            onChange={(e) => setFile(e.target.files?.[0] || null)} 
+            style={{ flex: 1, padding: '12px', background: 'rgba(0,0,0,0.3)', border: '1px dashed rgba(125,160,255,0.4)', borderRadius: '8px', color: 'var(--white)', outline: 'none' }} 
+          />
+          <button className="btn-primary" onClick={handleAnalyze} disabled={!file || loading} style={{ minWidth: '160px' }}>
+            {loading ? 'ANALYZING...' : 'START ANALYSIS'}
+          </button>
+        </div>
+        {error && <div style={{ color: 'var(--danger)', fontSize: '14px' }}>{error}</div>}
+      </div>
+
+      {/* Grid of empty/populated panels */}
+      <div className="card-grid">
+        
+        {/* EMAIL OVERVIEW */}
+        <div className="glass-card card-grid-span2 flex-col" style={{ gap: '12px' }}>
+          <h4 className="card-title text-muted" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Mail size={16}/> Email Overview</h4>
+          {!result ? (
+            <div className="text-muted" style={{ padding: '24px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
+              Upload an .eml file to begin forensic analysis.
+            </div>
+          ) : (
+            <div className="flex-col" style={{ gap: '8px' }}>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Sender</span><span className="text-white mono" style={{ fontSize: '14px' }}>{getHeader('From')}</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Recipient</span><span className="text-white mono" style={{ fontSize: '14px' }}>{getHeader('To')}</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Subject</span><span className="text-white" style={{ fontSize: '14px', maxWidth: '60%', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{getHeader('Subject')}</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Timestamp</span><span className="text-white mono" style={{ fontSize: '14px' }}>{getHeader('Date')}</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Message-ID</span><span className="text-white mono" style={{ fontSize: '14px', maxWidth: '60%', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{getHeader('Message-ID')}</span></div>
+            </div>
+          )}
+        </div>
+
+        {/* AUTHENTICATION */}
+        <div className="glass-card flex-col" style={{ gap: '12px' }}>
+          <h4 className="card-title text-muted" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Shield size={16}/> Authentication</h4>
+          {!result ? (
+            <div className="text-muted" style={{ padding: '24px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
+              Waiting for analysis data.
+            </div>
+          ) : (
+            <div className="flex-col" style={{ gap: '8px' }}>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>SPF</span><span className="text-white" style={{ fontSize: '14px' }}>Not available</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>DKIM</span><span className="text-white" style={{ fontSize: '14px' }}>Not available</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>DMARC</span><span className="text-white" style={{ fontSize: '14px' }}>Not available</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Alignment</span><span className="text-white" style={{ fontSize: '14px' }}>Not available</span></div>
+            </div>
+          )}
+        </div>
+
+        {/* THREAT INTELLIGENCE */}
+        <div className="glass-card flex-col" style={{ gap: '12px' }}>
+          <h4 className="card-title text-muted" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Globe size={16}/> Threat Intelligence</h4>
+          {!result ? (
+            <div className="text-muted" style={{ padding: '24px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
+              No email analyzed.
+            </div>
+          ) : (
+            <div className="flex-col" style={{ gap: '8px' }}>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>IPs</span><span className="text-white mono" style={{ fontSize: '14px' }}>{getIndicators('ip').length || 'None'}</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Domains</span><span className="text-white mono" style={{ fontSize: '14px' }}>{getIndicators('domain').length || 'None'}</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>URLs</span><span className="text-white mono" style={{ fontSize: '14px' }}>{getIndicators('url').length || 'None'}</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Geo/IP info</span><span className="text-white" style={{ fontSize: '14px' }}>Not available</span></div>
+            </div>
+          )}
+        </div>
+
+        {/* AI ANALYSIS */}
+        <div className="glass-card card-grid-span2 flex-col" style={{ gap: '12px' }}>
+          <h4 className="card-title text-muted" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Zap size={16}/> AI Analysis</h4>
+          {!result ? (
+            <div className="text-muted" style={{ padding: '24px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
+              Upload an .eml file to begin AI forensic analysis.
+            </div>
+          ) : (
+            <div className="flex-col" style={{ gap: '8px' }}>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Phishing Assessment</span><span className="text-white" style={{ fontSize: '14px' }}>{aiScore ? `${aiScore}% Confidence` : 'Not available'}</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>AI Content Assessment</span><span className="text-white" style={{ fontSize: '14px' }}>Not available</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Classification</span><span className={`text-${getClassificationColorClass(result.assertion?.sender_classification)}`} style={{ fontSize: '14px', fontWeight: 600 }}>{result.assertion?.sender_classification?.replace('_', ' ') || 'UNVERIFIED'}</span></div>
+              <div className="flex-col" style={{ marginTop: '8px', padding: '12px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px' }}>
+                <span className="text-muted uppercase" style={{ marginBottom: '4px', fontSize: '12px', letterSpacing: '0.05em' }}>Reasoning</span>
+                <span className="text-secondary" style={{ lineHeight: 1.5, fontSize: '14px' }}>{result.assertion?.threat_score_breakdown?.ai_reasoning || 'Not available'}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* FORENSIC ANALYSIS */}
+        <div className="glass-card flex-col" style={{ gap: '12px' }}>
+          <h4 className="card-title text-muted" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Hash size={16}/> Forensic Analysis</h4>
+          {!result ? (
+            <div className="text-muted" style={{ padding: '24px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
+              Waiting for analysis data.
+            </div>
+          ) : (
+            <div className="flex-col" style={{ gap: '8px' }}>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Relay path</span><span className="text-white mono" style={{ fontSize: '14px', maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{getHeader('Received')}</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Thread continuity</span><span className="text-white" style={{ fontSize: '14px' }}>Not available</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Attachments</span><span className="text-white" style={{ fontSize: '14px' }}>Not available</span></div>
+              <div className="flex-col" style={{ marginTop: '4px' }}>
+                <span className="text-muted uppercase" style={{ fontSize: '12px' }}>SHA-256</span>
+                <span className="text-white mono" style={{ fontSize: '12px', wordBreak: 'break-all' }}>{result.evidence_custody?.sha256_hash || 'Not available'}</span>
+              </div>
+              <div className="flex-col" style={{ marginTop: '4px' }}>
+                <span className="text-muted uppercase" style={{ fontSize: '12px' }}>TLSH</span>
+                <span className="text-white mono" style={{ fontSize: '12px', wordBreak: 'break-all' }}>Not available</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* THREAT SCORE BREAKDOWN */}
+        <div className="glass-card flex-col" style={{ gap: '12px' }}>
+          <h4 className="card-title text-muted" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Activity size={16}/> Threat Score Breakdown</h4>
+          {!result ? (
+            <div className="text-muted" style={{ padding: '24px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
+              No email analyzed.
+            </div>
+          ) : (
+            <div className="flex-col" style={{ gap: '8px' }}>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Final Score</span><span className={`text-${getSeverityColorClass(result.assertion?.threat_score)}`} style={{ fontSize: '18px', fontWeight: 'bold' }}>{result.assertion?.threat_score || 0}</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Severity</span><span className={`text-${getSeverityColorClass(result.assertion?.threat_score)}`} style={{ fontSize: '14px', fontWeight: 'bold' }}>{result.assertion?.severity || 'UNKNOWN'}</span></div>
+              
+              <div className="text-muted uppercase" style={{ fontSize: '12px', marginTop: '8px' }}>Risk Increasers</div>
+              {result.assertion?.risk_increasers?.length ? result.assertion.risk_increasers.slice(0,2).map((r: any, i: number) => (
+                <div key={i} className="flex-between"><span className="text-secondary" style={{ fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: '8px' }}>{r.factor}</span><span className="text-danger" style={{ fontSize: '12px' }}>+{r.score}</span></div>
+              )) : <div className="text-secondary" style={{ fontSize: '12px' }}>None identified</div>}
+              
+              <div className="text-muted uppercase" style={{ fontSize: '12px', marginTop: '8px' }}>Risk Reducers</div>
+              {result.assertion?.risk_reducers?.length ? result.assertion.risk_reducers.slice(0,2).map((r: any, i: number) => (
+                <div key={i} className="flex-between"><span className="text-secondary" style={{ fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: '8px' }}>{r.factor}</span><span className="text-success" style={{ fontSize: '12px' }}>{r.score}</span></div>
+              )) : <div className="text-secondary" style={{ fontSize: '12px' }}>None identified</div>}
+            </div>
+          )}
+        </div>
+        
+        {/* CASE INFORMATION */}
+        <div className="glass-card card-grid-span2 flex-col" style={{ gap: '12px' }}>
+          <h4 className="card-title text-muted" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Network size={16}/> Case Information</h4>
+          {!result ? (
+            <div className="text-muted" style={{ padding: '24px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
+              Case details will populate after analysis.
+            </div>
+          ) : (
+            <div className="flex-col" style={{ gap: '8px' }}>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Case Number</span><span className="text-white mono" style={{ fontSize: '14px' }}>{result.case_number || 'Not available'}</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Status</span><span className={`text-${getStatusColorClass(result.status)}`} style={{ fontSize: '14px', fontWeight: 'bold' }}>{result.status || 'PROCESSED'}</span></div>
+              <div className="flex-between"><span className="text-muted" style={{ fontSize: '14px' }}>Campaign</span><span className="text-white" style={{ fontSize: '14px' }}>{result.assertion?.campaign || 'Not available'}</span></div>
+            </div>
+          )}
+        </div>
+
+      </div>
     </div>
   );
 }
