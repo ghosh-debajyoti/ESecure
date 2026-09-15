@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/**/*.py": {
+      "excludeFiles": "{frontend/**,tests/**,data/**,scripts/**,*.eml,*.pdf,test_*.py,*.db,docs/**,train_model.py,generate_*.py}"
+    }
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
