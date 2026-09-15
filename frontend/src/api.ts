@@ -29,8 +29,17 @@ export async function fetchCampaigns() {
   return res.json();
 }
 
-export async function fetchAttackGraph(campaignId: number = 1) {
-  const res = await fetch(`${API_BASE_URL}/api/attack-graph/normalized?campaign_id=${campaignId}`);
+export async function fetchAttackGraph(caseNumber: string | null = null, campaignId: number | null = null) {
+  let url = `${API_BASE_URL}/api/attack-graph/normalized`;
+  const params = new URLSearchParams();
+  if (caseNumber) params.append('case_number', caseNumber);
+  if (campaignId) params.append('campaign_id', campaignId.toString());
+  
+  if (params.toString()) {
+    url += `?${params.toString()}`;
+  }
+
+  const res = await fetch(url);
   if (!res.ok) {
     if (res.status === 404) return null; // Handle if no campaign graph exists
     throw new Error('Failed to fetch attack graph');

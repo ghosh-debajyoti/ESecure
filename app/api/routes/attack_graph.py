@@ -49,14 +49,16 @@ from app.models.domain import Case, Indicator, EmailEvidence
 from app.models.ioc import IOC
 
 @router.get("/normalized")
-def get_normalized_graph(campaign_id: Optional[int] = None, db: Session = Depends(get_db)):
+def get_normalized_graph(campaign_id: Optional[int] = None, case_number: Optional[str] = None, db: Session = Depends(get_db)):
     nodes = []
     edges = []
     
     # 1. Fetch campaigns
-    campaign_query = db.query(Campaign)
+    campaign_query = db.query(Campaign).filter(Campaign.is_training == False)
     if campaign_id:
         campaign_query = campaign_query.filter(Campaign.id == campaign_id)
+    if case_number:
+        campaign_query = campaign_query.filter(Campaign.name == f"Campaign-{case_number}")
     campaigns = campaign_query.all()
     
     camp_ids = [c.id for c in campaigns]

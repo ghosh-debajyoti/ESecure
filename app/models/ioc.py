@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, JSON
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, JSON, Boolean
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -16,6 +16,7 @@ class IOC(Base):
     description = Column(String, nullable=True)
     intel = Column(JSON, nullable=True)
     campaign_id = Column(Integer, ForeignKey("campaigns.id"), index=True)
+    is_training = Column(Boolean, default=False, index=True)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
 
     # Optional: establish relationship back to campaign if needed later

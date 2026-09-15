@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import JSON, Column, DateTime, Integer, String
+from sqlalchemy import JSON, Column, DateTime, Integer, String, Boolean
 
 from app.core.database import Base
 
@@ -10,6 +10,7 @@ class Campaign(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
+    is_training = Column(Boolean, default=False, index=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     
     # Campaign DNA object

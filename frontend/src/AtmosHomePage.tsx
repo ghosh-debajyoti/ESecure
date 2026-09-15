@@ -1,5 +1,5 @@
 import { Search, Folder, Network, Hash, FileText, Home } from "lucide-react";
-import React, { useMemo, useState, useRef } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Environment, Float, Icosahedron, OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
@@ -160,10 +160,28 @@ function ThreatSphere3D({ isBackground = false }: { isBackground?: boolean }) {
 
 import { AnalyzePanel, CasesPanel, AttackGraphPanel, IOCsPanel, ReportsPanel } from "./Panels";
 import { useNavigate } from "react-router-dom";
+import { fetchCase } from "./api";
 
 export function AtmosHomePage() {
   const [activeTab, setActiveTab] = useState("HOME");
+  const [activeCase, setActiveCase] = useState<string | null>(() => {
+    return localStorage.getItem("activeCase");
+  });
   const navigate = useNavigate();
+
+  const [activeCaseDetail, setActiveCaseDetail] = useState<any>(null);
+
+  useEffect(() => {
+    if (activeCase) {
+      localStorage.setItem("activeCase", activeCase);
+      fetchCase(activeCase)
+        .then(res => setActiveCaseDetail(res))
+        .catch(err => console.error("Failed to fetch active case for indicator", err));
+    } else {
+      localStorage.removeItem("activeCase");
+      setActiveCaseDetail(null);
+    }
+  }, [activeCase]);
 
   const sparks = useMemo(
     () =>
@@ -214,7 +232,7 @@ export function AtmosHomePage() {
       <div className="atmos single-viewport">
         <header className="nav">
           <a className="wordmark" href="#top" onClick={(e) => { e.preventDefault(); setActiveTab("HOME"); }}>
-            ESecure
+            E-KAVACH
           </a>
           <div className="nav-center">
             {navItems.map(item => (
@@ -294,7 +312,7 @@ export function AtmosHomePage() {
         <ThreatSphere3D isBackground />
       </div>
 
-      <div style={{ position: 'absolute', top: '16px', right: '24px', zIndex: 100 }}>
+      <div style={{ position: 'absolute', top: '16px', right: '24px', zIndex: 100, display: 'flex', gap: '16px', alignItems: 'center' }}>
         <div className="flex-row" style={{ background: 'rgba(0,0,0,0.5)', padding: '4px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
           <button 
             style={{ padding: '6px 12px', background: 'var(--accent)', border: 'none', color: 'white', cursor: 'default', fontSize: '12px', fontWeight: 600, borderRadius: '4px' }}
@@ -310,13 +328,33 @@ export function AtmosHomePage() {
         </div>
       </div>
 
+      {activeCase && activeCaseDetail && activeTab !== "HOME" && (
+        <div style={{ position: 'absolute', bottom: '24px', right: '24px', zIndex: 100 }}>
+          <div className="glass-card" style={{ padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: '4px', border: '1px solid var(--accent)', minWidth: '200px' }}>
+            <span style={{ fontSize: '10px', color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.05em' }}>ACTIVE CASE</span>
+            <span style={{ fontSize: '14px', color: 'var(--white)', fontWeight: 600 }}>{activeCase}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', marginTop: '4px', gap: '2px' }}>
+              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '250px' }}>
+                Email: {activeCaseDetail.trace?.headers?.Subject || 'Unknown Subject'}
+              </span>
+              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>
+                Threat Score: {activeCaseDetail.assertion?.threat_score || 0}
+              </span>
+              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>
+                Status: {activeCaseDetail.status?.toUpperCase() || 'UNKNOWN'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <DashboardSidebar />
       <main className="dashboard-main-content">
-        {activeTab === "ANALYZE" && <AnalyzePanel />}
-        {activeTab === "CASES" && <CasesPanel />}
-        {activeTab === "ATTACK GRAPH" && <AttackGraphPanel />}
-        {activeTab === "IOCs" && <IOCsPanel />}
-        {activeTab === "REPORTS" && <ReportsPanel />}
+        {activeTab === "ANALYZE" && <AnalyzePanel activeCase={activeCase} setActiveCase={setActiveCase} />}
+        {activeTab === "CASES" && <CasesPanel activeCase={activeCase} setActiveCase={setActiveCase} />}
+        {activeTab === "ATTACK GRAPH" && <AttackGraphPanel activeCase={activeCase} />}
+        {activeTab === "IOCs" && <IOCsPanel activeCase={activeCase} />}
+        {activeTab === "REPORTS" && <ReportsPanel activeCase={activeCase} />}
       </main>
     </div>
   );

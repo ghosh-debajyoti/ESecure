@@ -15,7 +15,7 @@ async def get_employee_risk(pg_db: Session = Depends(get_pg_db)):
     try:
         # Business mode aggregates ONLY legitimate application-generated cases.
         # These are stored in EmailAnalysis. The ML training dataset is not in this table.
-        records = pg_db.query(EmailAnalysis).all()
+        records = pg_db.query(EmailAnalysis).filter(EmailAnalysis.is_training == False).all()
         
         targets: Dict[str, Dict[str, Any]] = {}
         
@@ -90,7 +90,7 @@ async def get_employee_risk(pg_db: Session = Depends(get_pg_db)):
 @router.get("/progression")
 async def get_attack_progression(pg_db: Session = Depends(get_pg_db)):
     try:
-        records = pg_db.query(EmailAnalysis).order_by(EmailAnalysis.created_at.asc()).all()
+        records = pg_db.query(EmailAnalysis).filter(EmailAnalysis.is_training == False).order_by(EmailAnalysis.created_at.asc()).all()
         
         # We will build progressions by checking for shared IOCs or Campaign or Sender
         # Progression node: { case_number, timestamp, target, threat_type, severity, shared_ioc, relationship, confidence }

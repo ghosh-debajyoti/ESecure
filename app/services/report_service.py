@@ -128,7 +128,7 @@ class ReportService:
         elements = []
 
         def add_banner(title: str, subtitle: str):
-            elements.append(Paragraph("AAROHAN FORENSICS", brand_style))
+            elements.append(Paragraph("E-KAVACH FORENSICS", brand_style))
             elements.append(Paragraph(f"EMAIL THREAT-FORENSICS WORKSTATION — {subtitle.upper()}", sub_brand_style))
             if privacy_mode:
                 elements.append(Paragraph("<font color='#d97706'><b>[ PRIVACY MODE ACTIVE — PERSONAL DATA REDACTED ]</b></font>", body_style))
@@ -148,7 +148,7 @@ class ReportService:
             sev_color = colors.HexColor("#16a34a") # Green
 
         # PAGE 1 — EXECUTIVE SUMMARY
-        add_banner("AAROHAN", "Page 1 — Executive Summary")
+        add_banner("E-KAVACH", "Page 1 — Executive Summary")
         elements.append(Paragraph("1. Executive Summary", section_heading))
         
         case_num = case_data.get("case_number", "N/A")
@@ -219,7 +219,7 @@ class ReportService:
         elements.append(PageBreak())
 
         # PAGE 2 — EMAIL EVIDENCE
-        add_banner("AAROHAN", "Page 2 — Email Evidence Metadata")
+        add_banner("E-KAVACH", "Page 2 — Email Evidence Metadata")
         elements.append(Paragraph("2. Preserved Email Evidence", section_heading))
         
         headers = get_nested(case_data, "trace", "headers", default={})
@@ -258,7 +258,7 @@ class ReportService:
         elements.append(PageBreak())
 
         # PAGE 3 — THREAT ASSESSMENT
-        add_banner("AAROHAN", "Page 3 — Threat Assessment & Scoring")
+        add_banner("E-KAVACH", "Page 3 — Threat Assessment & Scoring")
         elements.append(Paragraph("3. Detailed Risk Assessment", section_heading))
         
         breakdown = get_nested(case_data, "assertion", "threat_score_breakdown", default={})
@@ -327,7 +327,7 @@ class ReportService:
         elements.append(PageBreak())
 
         # PAGE 4 — AUTHENTICATION
-        add_banner("AAROHAN", "Page 4 — Email Authentication")
+        add_banner("E-KAVACH", "Page 4 — Email Authentication")
         elements.append(Paragraph("4. Protocol Authentication & Alignment", section_heading))
         
         tech_flags = get_nested(case_data, "assertion", "technical_flags", default={})
@@ -390,7 +390,7 @@ class ReportService:
         elements.append(PageBreak())
 
         # PAGE 5 — FORENSIC ANALYSIS
-        add_banner("AAROHAN", "Page 5 — Forensic Header & Structure Analysis")
+        add_banner("E-KAVACH", "Page 5 — Forensic Header & Structure Analysis")
         elements.append(Paragraph("5. Deep Forensic Analysis", section_heading))
         
         boundaries = get_nested(case_data, "property", "mime_boundaries", default=[])
@@ -411,7 +411,7 @@ class ReportService:
         elements.append(PageBreak())
 
         # PAGE 6 — NETWORK ANALYSIS
-        add_banner("AAROHAN", "Page 6 — Network Relay Hops")
+        add_banner("E-KAVACH", "Page 6 — Network Relay Hops")
         elements.append(Paragraph("6. Network Routing Timeline", section_heading))
         
         relay_route = get_nested(case_data, "trace", "relay_route", default=[])
@@ -447,7 +447,7 @@ class ReportService:
         elements.append(PageBreak())
 
         # PAGE 7 — INDICATORS & INTELLIGENCE
-        add_banner("AAROHAN", "Page 7 — Threat Intelligence & IOCs")
+        add_banner("E-KAVACH", "Page 7 — Threat Intelligence & IOCs")
         elements.append(Paragraph("7. Extracted Indicators of Compromise (IOCs)", section_heading))
         
         indicators = get_nested(case_data, "property", "indicators", default=[])
@@ -490,7 +490,7 @@ class ReportService:
         elements.append(PageBreak())
 
         # PAGE 8 — CAMPAIGN DNA
-        add_banner("AAROHAN", "Page 8 — Campaign DNA & TLSH Fingerprinting")
+        add_banner("E-KAVACH", "Page 8 — Campaign DNA & TLSH Fingerprinting")
         elements.append(Paragraph("8. Structural Locality Sensitive Hashing (TLSH)", section_heading))
         
         tlsh_hash = get_nested(case_data, "property", "tlsh_hash", default="NO HASH GENERATED")
@@ -509,7 +509,7 @@ class ReportService:
         elements.append(PageBreak())
 
         # PAGE 9 — ATTACK GRAPH
-        add_banner("AAROHAN", "Page 9 — STIX Attack Graph Relationships")
+        add_banner("E-KAVACH", "Page 9 — STIX Attack Graph Relationships")
         elements.append(Paragraph("9. Attack Relationship Graph Topology", section_heading))
         
         graph_data = case_data.get("graph", {})
@@ -540,7 +540,7 @@ class ReportService:
         elements.append(PageBreak())
 
         # PAGE 10 — EVIDENCE CUSTODY
-        add_banner("AAROHAN", "Page 10 — Digital Custody & Integrity Record")
+        add_banner("E-KAVACH", "Page 10 — Digital Custody & Integrity Record")
         elements.append(Paragraph("10. Digital Chain of Custody", section_heading))
         
         sha256 = get_nested(case_data, "evidence_custody", "sha256_hash", default="N/A")
@@ -567,7 +567,7 @@ class ReportService:
 
         notice_text = (
             "<b>Evidentiary Integrity Notice:</b><br/>"
-            "This report is generated from raw email evidence preserved by the AAROHAN threat forensics engine. "
+            "This report is generated from raw email evidence preserved by the E-KAVACH threat forensics engine. "
             "Privacy Mode redactions apply only to presentation representations and do not modify the underlying "
             "stored SHA-256 evidence hash or original header data."
         )

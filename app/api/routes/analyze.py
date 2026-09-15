@@ -370,7 +370,7 @@ async def export_pdf_report(
         )
         
         headers = {
-            'Content-Disposition': f'attachment; filename="AAROHAN_Forensic_Report_{case_number}.pdf"'
+            'Content-Disposition': f'attachment; filename="E-KAVACH_Forensic_Report_{case_number}.pdf"'
         }
         
         return StreamingResponse(
@@ -389,7 +389,7 @@ async def export_pdf_report(
 @router.get("/cases")
 async def get_cases(limit: int = 50, pg_db: Session = Depends(get_pg_db)):
     try:
-        records = pg_db.query(EmailAnalysis).order_by(EmailAnalysis.created_at.desc()).limit(limit).all()
+        records = pg_db.query(EmailAnalysis).filter(EmailAnalysis.is_training == False).order_by(EmailAnalysis.created_at.desc()).limit(limit).all()
         return [{
             "case_number": r.case_number,
             "subject": r.subject,
@@ -407,7 +407,10 @@ async def get_cases(limit: int = 50, pg_db: Session = Depends(get_pg_db)):
 @router.get("/cases/{case_number}")
 async def get_case(case_number: str, db: Session = Depends(get_db), pg_db: Session = Depends(get_pg_db)):
     try:
-        record = pg_db.query(EmailAnalysis).filter_by(case_number=case_number).first()
+        record = pg_db.query(EmailAnalysis).filter(
+            EmailAnalysis.case_number == case_number,
+            EmailAnalysis.is_training == False
+        ).first()
         if not record or not record.uco_data:
             raise HTTPException(status_code=404, detail="Case data not found")
             

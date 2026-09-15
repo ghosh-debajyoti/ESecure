@@ -24,7 +24,7 @@ def update_campaign_dna(id: int, campaign_update: CampaignUpdateDNA, db: Session
 # Optionally, add a GET route to create / retrieve for testing if none exist
 @router.get("/{id}", response_model=CampaignResponse)
 def get_campaign(id: int, db: Session = Depends(get_db)):
-    campaign = db.query(Campaign).filter(Campaign.id == id).first()
+    campaign = db.query(Campaign).filter(Campaign.id == id, Campaign.is_training == False).first()
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
     return campaign
@@ -39,4 +39,4 @@ def create_campaign(name: str, db: Session = Depends(get_db)):
 
 @router.get("/", response_model=list[CampaignResponse])
 def get_all_campaigns(db: Session = Depends(get_db)):
-    return db.query(Campaign).all()
+    return db.query(Campaign).filter(Campaign.is_training == False).all()

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, JSON, ForeignKey
+from sqlalchemy import Column, Integer, JSON, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -9,6 +9,7 @@ class AttackGraph(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     campaign_id = Column(Integer, ForeignKey("campaigns.id"), unique=True, index=True)
+    is_training = Column(Boolean, default=False, index=True)
     nodes = Column(JSON, default=list)
     edges = Column(JSON, default=list)
 

@@ -1,7 +1,7 @@
 import datetime
 import uuid
 
-from sqlalchemy import Column, DateTime, Float, String, JSON
+from sqlalchemy import Column, Boolean, DateTime, Float, String, JSON
 
 from app.database import Base
 
@@ -15,6 +15,7 @@ class EmailAnalysis(Base):
     sender = Column(String, nullable=True)
     tlsh_hash = Column(String, nullable=True)
     threat_score = Column(Float, nullable=True)
+    is_training = Column(Boolean, default=False, index=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     uco_data = Column(JSON, nullable=True)
 

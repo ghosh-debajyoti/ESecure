@@ -20,8 +20,6 @@ export function AnalysisResultView({ result, onNewScan }: { result: any, onNewSc
   const aiModelScore = (result?.assertion?.threat_score_breakdown?.ai_model_score * 100) || 0;
   const heuristicScore = (result?.assertion?.threat_score_breakdown?.model_score * 100) || 0;
   
-  // Mock data for curve chart based on threat score to show some visual trend
-  const curveData = [Math.max(0, threatScore - 20), threatScore - 10, threatScore, Math.max(0, threatScore - 5), threatScore];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
@@ -124,14 +122,9 @@ export function AnalysisResultView({ result, onNewScan }: { result: any, onNewSc
           <p className="text-secondary" style={{ lineHeight: 1.5, marginBottom: '16px', flex: 1, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {result?.assertion?.threat_score_breakdown?.ai_reasoning || 'No AI reasoning provided for this analysis.'}
           </p>
-          <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-            <div style={{ flex: 1 }}>
-               <CurveChart dataPoints={curveData} labels={['T-4', 'T-3', 'T-2', 'T-1', 'Now']} color={threatScore >= 60 ? '#ff5f54' : '#7da0ff'} height={80} />
-            </div>
-            <div style={{ display: 'flex', gap: '16px', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '24px' }}>
-              <CircularProgress value={Math.round(aiModelScore)} size="sm" variant="threat" label="AI Model" />
-              <CircularProgress value={Math.round(heuristicScore)} size="sm" variant="threat" label="Heuristics" />
-            </div>
+          <div style={{ display: 'flex', gap: '32px', alignItems: 'center', justifyContent: 'center', marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <CircularProgress value={Math.round(aiModelScore)} size="sm" variant="threat" label="AI Model" />
+            <CircularProgress value={Math.round(heuristicScore)} size="sm" variant="threat" label="Heuristics" />
           </div>
         </div>
 
@@ -191,11 +184,23 @@ export function AnalysisResultView({ result, onNewScan }: { result: any, onNewSc
 
 import { IntelIndicator } from './AtmosHomePage';
 
-export function AnalyzePanel() {
+export function AnalyzePanel({ activeCase, setActiveCase }: { activeCase: string | null, setActiveCase: (case_num: string) => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+
+  useEffect(() => {
+    if (activeCase && result?.case_number !== activeCase) {
+      setLoading(true);
+      fetchCase(activeCase)
+        .then(setResult)
+        .catch(e => setError(e.message || 'Failed to fetch active case details.'))
+        .finally(() => setLoading(false));
+    } else if (!activeCase && result) {
+      setResult(null);
+    }
+  }, [activeCase, result?.case_number]);
 
   const handleAnalyze = async () => {
     if (!file) return;
@@ -204,6 +209,9 @@ export function AnalyzePanel() {
     try {
       const res = await analyzeFile(file);
       setResult(res);
+      if (res.case_number) {
+        setActiveCase(res.case_number);
+      }
     } catch (e: any) {
       console.error(e);
       setError(e.message || 'Analysis failed. Please try again.');
@@ -419,7 +427,7 @@ export function AnalyzePanel() {
   );
 }
 
-export function CasesPanel() {
+export function CasesPanel({ activeCase, setActiveCase }: { activeCase: string | null, setActiveCase: (case_num: string | null) => void }) {
   const [cases, setCases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -434,12 +442,21 @@ export function CasesPanel() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (activeCase) {
+      handleSelectCase(activeCase);
+    } else {
+      setSelectedCase(null);
+    }
+  }, [activeCase]);
+
   const handleSelectCase = async (caseNumber: string) => {
     setCaseDetailLoading(true);
     setError(null);
     try {
       const detail = await fetchCase(caseNumber);
       setSelectedCase(detail);
+      setActiveCase(caseNumber);
     } catch (e: any) {
       setError(e.message || 'Failed to fetch case details.');
     }
@@ -457,8 +474,12 @@ export function CasesPanel() {
         <div className="pane-left flex-col" style={{ overflowY: 'auto', gap: '16px' }}>
           <div className="glass-card flex-col" style={{ position: 'sticky', top: 0, zIndex: 2, padding: '16px' }}>
             <div className="flex-between" style={{ marginBottom: '16px' }}>
-               <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--white)' }}>Active Cases</h3>
-               <Filter size={16} className="text-muted" />
+               <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--white)' }}>Application Cases</h3>
+               {activeCase ? (
+                 <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => setActiveCase(null)}>Clear Active</button>
+               ) : (
+                 <Filter size={16} className="text-muted" />
+               )}
             </div>
             <div style={{ position: 'relative' }}>
               <Search size={14} style={{ position: 'absolute', left: '12px', top: '13px', color: 'var(--muted)' }} />
@@ -517,27 +538,51 @@ export function CasesPanel() {
   );
 }
 
-export function AttackGraphPanel() {
+export function AttackGraphPanel({ activeCase }: { activeCase: string | null }) {
+  if (!activeCase) {
+    return (
+      <div className="dashboard-container dashboard-panel flex-col" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '600px' }}>
+         <Shield size={64} className="text-muted" style={{ margin: '0 auto 24px', opacity: 0.15 }} />
+         <h3 style={{ color: 'var(--white)', margin: '0 0 12px', fontSize: '20px' }}>No Active Analysis</h3>
+         <p className="text-muted" style={{ maxWidth: '300px', textAlign: 'center', lineHeight: 1.5 }}>Upload an email or select a case to view the attack graph.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard-container">
       <ErrorBoundary fallbackMessage="The Attack Graph encountered an error.">
-        <AttackGraph />
+        <AttackGraph activeCase={activeCase} />
       </ErrorBoundary>
     </div>
   );
 }
 
-export function IOCsPanel() {
+export function IOCsPanel({ activeCase }: { activeCase: string | null }) {
   const [iocs, setIocs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchAllIOCs()
-      .then(setIocs)
-      .catch((e) => setError(e.message || 'Failed to fetch IOCs'))
-      .finally(() => setLoading(false));
-  }, []);
+    if (!activeCase) {
+      setIocs([]);
+      return;
+    }
+    setLoading(true);
+    // Since IOCs are currently fetched globally or tied to campaigns, 
+    // for this MVP we filter them on the frontend based on the case details if possible, 
+    // or just fetch all and assume the backend will return the right ones.
+    // Ideally, we'd fetch the specific case and use its indicators.
+    fetchCase(activeCase).then(res => {
+      if (res && res.property && res.property.indicators) {
+        setIocs(res.property.indicators);
+      } else {
+        setIocs([]);
+      }
+    }).catch(e => {
+      setError(e.message || 'Failed to fetch IOCs');
+    }).finally(() => setLoading(false));
+  }, [activeCase]);
 
   const getIocIcon = (type: string) => {
     const t = type?.toLowerCase() || '';
@@ -557,8 +602,14 @@ export function IOCsPanel() {
   return (
     <div className="dashboard-container">
       <div className="dashboard-header" style={{ marginBottom: '24px' }}>Threat Intelligence Data Grid</div>
-      {error && <div style={{ color: 'var(--danger)', fontSize: '14px' }}>{error}</div>}
-      {loading ? <p>Loading IOCs...</p> : (
+      {!activeCase ? (
+         <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+             <Shield size={64} className="text-muted" style={{ margin: '0 auto 24px', opacity: 0.15 }} />
+             <h3 style={{ color: 'var(--white)', margin: '0 0 12px', fontSize: '20px' }}>No Active Analysis</h3>
+             <p className="text-muted" style={{ maxWidth: '300px', textAlign: 'center', lineHeight: 1.5 }}>Upload an email or select a case to view threat intelligence data.</p>
+         </div>
+      ) : error ? <div style={{ color: 'var(--danger)', fontSize: '14px' }}>{error}</div> :
+      loading ? <p>Loading IOCs...</p> : (
         <div className="card-grid">
           {iocs.map((ioc: any, i: number) => {
             const threatScore = getThreatScore(ioc.severity);
@@ -591,42 +642,37 @@ export function IOCsPanel() {
   );
 }
 
-export function ReportsPanel() {
-  const [cases, setCases] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function ReportsPanel({ activeCase }: { activeCase: string | null }) {
   const [selectedCase, setSelectedCase] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchCases()
-      .then(setCases)
-      .catch((e) => setError(e.message || 'Failed to fetch cases'))
-      .finally(() => setLoading(false));
-  }, []);
+    if (activeCase) {
+      setLoading(true);
+      fetchCase(activeCase)
+        .then(setSelectedCase)
+        .catch(e => setError(e.message || 'Failed to fetch case details'))
+        .finally(() => setLoading(false));
+    } else {
+      setSelectedCase(null);
+    }
+  }, [activeCase]);
+
+  if (!activeCase) {
+    return (
+      <div className="dashboard-container dashboard-panel flex-col" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '600px' }}>
+         <Shield size={64} className="text-muted" style={{ margin: '0 auto 24px', opacity: 0.15 }} />
+         <h3 style={{ color: 'var(--white)', margin: '0 0 12px', fontSize: '20px' }}>No Active Analysis</h3>
+         <p className="text-muted" style={{ maxWidth: '300px', textAlign: 'center', lineHeight: 1.5 }}>Upload an email or select a case to export a forensic report.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-container dashboard-panel" style={{ padding: 0, background: 'transparent', border: 'none', boxShadow: 'none' }}>
       <div className="split-pane">
-        <div className="pane-left glass-card" style={{ padding: '16px', maxHeight: '80vh', overflowY: 'auto' }}>
-          <div className="flex-col" style={{ position: 'sticky', top: 0, background: 'rgba(10,15,26,0.9)', zIndex: 2, paddingBottom: '16px', marginBottom: '8px' }}>
-            <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--white)' }}>Select Report</h3>
-          </div>
-          <div className="flex-col">
-            {cases.map((c: any, i) => (
-              <div key={i} className={`case-item ${selectedCase?.case_number === c.case_number ? 'selected' : ''}`} onClick={() => setSelectedCase(c)}>
-                <div className="flex-col" style={{ gap: '4px' }}>
-                  <div className="flex-between">
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--white)' }}>{c.case_number}</span>
-                    <span style={{ fontSize: '11px', color: c.threat_score >= 60 ? 'var(--danger)' : 'var(--success)' }}>SCORE: {c.threat_score}</span>
-                  </div>
-                  <span className="text-secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.subject || 'Unknown Subject'}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="pane-right">
+        <div className="pane-right" style={{ flex: 1 }}>
           {selectedCase ? (
             <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                <div className="dashboard-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '16px', marginBottom: '24px' }}>

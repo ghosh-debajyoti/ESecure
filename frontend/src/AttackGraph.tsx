@@ -3,38 +3,23 @@ import ForceGraph2D from 'react-force-graph-2d';
 import { X, Maximize, GitCommit } from 'lucide-react';
 import { fetchAttackGraph, fetchCampaigns } from './api';
 
-export function AttackGraph() {
-  const [campaigns, setCampaigns] = useState<any[]>([]);
-  const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
+export function AttackGraph({ activeCase }: { activeCase: string | null }) {
   const [graph, setGraph] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchCampaigns()
-      .then((c) => {
-        setCampaigns(c);
-        if (c.length > 0) {
-          setSelectedCampaignId(c[0].id);
-        } else {
-          setLoading(false);
-        }
-      })
-      .catch((e) => {
-        setError('Failed to fetch campaigns');
-        setLoading(false);
-      });
-  }, []);
-
-  useEffect(() => {
-    if (selectedCampaignId === null) return;
+    if (!activeCase) {
+      setGraph(null);
+      return;
+    }
     setLoading(true);
     setError(null);
-    fetchAttackGraph(selectedCampaignId)
+    fetchAttackGraph(activeCase)
       .then(setGraph)
       .catch((e) => setError(e.message || 'Failed to fetch graph data'))
       .finally(() => setLoading(false));
-  }, [selectedCampaignId]);
+  }, [activeCase]);
 
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -98,15 +83,10 @@ export function AttackGraph() {
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: 'var(--white)' }}>
           Loading graph data...
         </div>
-      ) : campaigns.length === 0 ? (
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'rgba(255,255,255,0.05)', padding: '32px', textAlign: 'center', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.2)' }}>
-           <h4 style={{ color: 'var(--white)', margin: '0 0 8px 0' }}>No Campaigns Found</h4>
-           <p style={{ color: 'rgba(255,255,255,0.5)', margin: 0, fontSize: '14px' }}>Upload an email in the Analyze tab to generate case data.</p>
-        </div>
-      ) : graphData.nodes.length === 0 ? (
+      ) : (!graphData.links || graphData.links.length === 0) ? (
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'rgba(255,255,255,0.05)', padding: '32px', textAlign: 'center', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.2)' }}>
            <h4 style={{ color: 'var(--white)', margin: '0 0 8px 0' }}>No Graph Data</h4>
-           <p style={{ color: 'rgba(255,255,255,0.5)', margin: 0, fontSize: '14px' }}>There are no nodes or edges associated with this campaign.</p>
+           <p style={{ color: 'rgba(255,255,255,0.5)', margin: 0, fontSize: '14px' }}>No attack graph data for this case.</p>
         </div>
       ) : (
         <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
@@ -157,20 +137,6 @@ export function AttackGraph() {
           />
 
           {/* Floating Panels */}
-          {/* Top-Left: Campaign selector pill */}
-          <div className="floating-panel floating-top-left" style={{ padding: '8px 12px', borderRadius: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <GitCommit size={16} className="text-secondary" />
-            <select 
-              value={selectedCampaignId || ''} 
-              onChange={(e) => setSelectedCampaignId(Number(e.target.value))}
-              style={{ background: 'transparent', color: 'var(--white)', border: 'none', outline: 'none', fontSize: '13px', cursor: 'pointer' }}
-            >
-              {campaigns.map(c => (
-                <option key={c.id} value={c.id} style={{ background: '#050a15' }}>{c.name || `Campaign #${c.id}`}</option>
-              ))}
-            </select>
-          </div>
-
           {/* Top-Right: Legend card */}
           <div className="floating-panel floating-top-right">
             <h4 style={{ margin: '0 0 12px 0', fontSize: '12px', textTransform: 'uppercase', color: 'var(--secondary)' }}>Node Types</h4>

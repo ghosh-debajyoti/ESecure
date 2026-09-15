@@ -43,7 +43,27 @@ const BusinessSidebar = ({ activeTab, setActiveTab }: { activeTab: string, setAc
 
 export function BusinessMode() {
   const [activeTab, setActiveTab] = useState("OVERVIEW");
+  const [activeCase, setActiveCase] = useState<any>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const saved = localStorage.getItem("businessActiveCase");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setActiveCase(parsed);
+      } catch (e) {}
+    }
+  }, []);
+
+  const handleSetActiveCase = (c: any) => {
+    if (c) {
+      localStorage.setItem("businessActiveCase", JSON.stringify(c));
+    } else {
+      localStorage.removeItem("businessActiveCase");
+    }
+    setActiveCase(c);
+  };
 
   return (
     <div className="atmos dashboard-layout">
@@ -69,17 +89,27 @@ export function BusinessMode() {
       <BusinessSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
       <main className="dashboard-main-content">
-        {activeTab === "OVERVIEW" && <BusinessOverview />}
-        {activeTab === "ANALYZE_EMAIL" && <BusinessAnalyze />}
-        {activeTab === "ATTACK_PROGRESSION" && <AttackProgression />}
-        {activeTab === "EMPLOYEE_RISK" && <EmployeeRisk />}
-        {activeTab === "ANALYSIS_HISTORY" && <BusinessHistory />}
+        {activeTab === "OVERVIEW" && <BusinessOverview activeCase={activeCase} />}
+        {activeTab === "ANALYZE_EMAIL" && <BusinessAnalyze activeCase={activeCase} setActiveCase={handleSetActiveCase} />}
+        {activeTab === "ATTACK_PROGRESSION" && <AttackProgression activeCase={activeCase} />}
+        {activeTab === "EMPLOYEE_RISK" && <EmployeeRisk activeCase={activeCase} />}
+        {activeTab === "ANALYSIS_HISTORY" && <BusinessHistory setActiveCase={(c: any) => { handleSetActiveCase(c); setActiveTab("OVERVIEW"); }} />}
       </main>
     </div>
   );
 }
 
-function BusinessOverview() {
+function EmptyState() {
+  return (
+    <div className="glass-card flex-col" style={{ gap: '16px', padding: '48px', alignItems: 'center', textAlign: 'center', margin: 'auto', maxWidth: '400px' }}>
+      <Search size={48} className="text-muted" />
+      <h3 style={{ margin: 0, color: 'var(--white)' }}>NO ACTIVE INVESTIGATION</h3>
+      <span className="text-muted">Upload an .eml file to begin.</span>
+    </div>
+  );
+}
+
+function BusinessOverview({ activeCase }: { activeCase: any }) {
   const [riskData, setRiskData] = useState<any[]>([]);
   const [progressionData, setProgressionData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,27 +126,40 @@ function BusinessOverview() {
     .finally(() => setLoading(false));
   }, []);
 
+  if (!activeCase) {
+    return <div className="dashboard-container dashboard-panel flex-col" style={{ padding: '48px' }}><EmptyState /></div>;
+  }
+
   const totalTargets = riskData.length;
   const criticalThreats = riskData.reduce((acc, curr) => acc + curr.critical_threats, 0);
   const totalRisk = riskData.reduce((acc, curr) => acc + curr.aggregate_risk, 0);
   const avgRisk = totalTargets > 0 ? (totalRisk / totalTargets).toFixed(1) : 0;
   const threatCount = riskData.reduce((acc, curr) => acc + curr.threat_count, 0);
-  
-  // Fake timeline data based on total threat count for the visual representation
-  const curveData = progressionData.length > 0 
-    ? progressionData.slice(-5).map(p => p.threat_score || 20) 
-    : [20, 30, 40, 25, 50];
+
+  const scoreClass = activeCase.assertion?.severity === 'CRITICAL' ? 'critical' : activeCase.assertion?.severity === 'HIGH' ? 'danger' : 'safe';
 
   return (
     <div className="dashboard-container dashboard-panel" style={{ padding: 0, background: 'transparent', border: 'none', boxShadow: 'none' }}>
       <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', height: '100%', overflowY: 'auto' }}>
         
-        <div className="flex-between">
-          <h2 style={{ fontSize: '24px', margin: 0, fontWeight: 600, letterSpacing: '-0.5px' }}>Organization Security Overview</h2>
+        <div className="glass-card flex-between" style={{ padding: '24px', border: '1px solid var(--accent)', background: 'rgba(125,160,255,0.05)' }}>
+          <div className="flex-col" style={{ gap: '8px' }}>
+            <span className="text-accent" style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1px' }}>CURRENT INVESTIGATION</span>
+            <h2 style={{ fontSize: '28px', margin: 0, fontWeight: 700, color: 'var(--white)' }}>{activeCase.case_number}</h2>
+            <span className="text-secondary">{activeCase.trace?.target_info?.subject || 'Unknown Subject'}</span>
+          </div>
+          <div className="flex-col" style={{ gap: '8px', alignItems: 'flex-end' }}>
+            <span className="text-muted" style={{ fontSize: '12px', fontWeight: 600 }}>STATUS</span>
+            <span className={`text-${scoreClass}`} style={{ fontSize: '18px', fontWeight: 700 }}>
+              {activeCase.status || 'PROCESSED'} • {activeCase.assertion?.severity || 'UNKNOWN'}
+            </span>
+            <span style={{ color: 'var(--white)', fontWeight: 600 }}>Threat Score: {activeCase.assertion?.threat_score || 0}</span>
+          </div>
         </div>
         
         {loading ? <div className="text-muted">Loading metrics...</div> : (
           <>
+            <h3 style={{ fontSize: '18px', margin: '16px 0 0 0', fontWeight: 600, color: 'var(--secondary)' }}>Organizational History</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
               <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <span className="text-muted" style={{ fontSize: '12px', textTransform: 'uppercase', fontWeight: 600 }}>Threats Detected</span>
@@ -141,13 +184,6 @@ function BusinessOverview() {
             </div>
 
             <div className="card-grid" style={{ marginTop: '8px' }}>
-              <div className="glass-card card-grid-span2 flex-col" style={{ padding: '24px', gap: '16px' }}>
-                <h3 className="card-title text-muted">Threat Activity Over Time</h3>
-                <div style={{ flex: 1, minHeight: '200px', display: 'flex', alignItems: 'center' }}>
-                  <CurveChart dataPoints={curveData} labels={['T-4', 'T-3', 'T-2', 'T-1', 'Now']} color="#7da0ff" height={150} />
-                </div>
-              </div>
-
               <div className="glass-card flex-col" style={{ padding: '24px', gap: '16px' }}>
                 <h3 className="card-title text-muted">Top Targets</h3>
                 <div className="flex-col" style={{ gap: '12px' }}>
@@ -186,11 +222,10 @@ function BusinessOverview() {
   );
 }
 
-function BusinessAnalyze() {
+function BusinessAnalyze({ activeCase, setActiveCase }: { activeCase: any, setActiveCase: (c: any) => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<any>(null);
 
   const handleAnalyze = async () => {
     if (!file) return;
@@ -198,7 +233,8 @@ function BusinessAnalyze() {
     setError(null);
     try {
       const res = await analyzeFile(file);
-      setResult(res);
+      setActiveCase(res);
+      setFile(null);
     } catch (e: any) {
       console.error(e);
       setError(e.message || 'Analysis failed. Please try again.');
@@ -210,7 +246,7 @@ function BusinessAnalyze() {
     <div className="dashboard-container dashboard-panel flex-col" style={{ gap: '24px', padding: '24px', overflowY: 'auto' }}>
       <h2 style={{ fontSize: '24px', margin: 0, fontWeight: 600, letterSpacing: '-0.5px' }}>Analyze Email</h2>
       
-      {!result ? (
+      {!activeCase || file ? (
         <div className="glass-card flex-col" style={{ gap: '24px', padding: '32px', maxWidth: '600px' }}>
           <div className="flex-col" style={{ gap: '8px', alignItems: 'center', textAlign: 'center' }}>
             <UploadCloud size={48} className="text-muted" style={{ marginBottom: '8px' }} />
@@ -239,47 +275,90 @@ function BusinessAnalyze() {
             >
               {loading ? 'ANALYZING...' : 'ANALYZE EMAIL'}
             </button>
+            {activeCase && file && (
+              <button className="btn-secondary" onClick={() => setFile(null)} style={{ width: '100%' }}>CANCEL</button>
+            )}
           </div>
           {error && <div style={{ color: 'var(--danger)', marginTop: '8px', fontSize: '14px', textAlign: 'center' }}>{error}</div>}
         </div>
       ) : (
-        <AnalysisResultView result={result} onNewScan={() => { setFile(null); setResult(null); }} />
+        <AnalysisResultView result={activeCase} onNewScan={() => setFile(new File([], ""))} />
       )}
     </div>
   );
 }
 
-function AttackProgression() {
+function AttackProgression({ activeCase }: { activeCase: any }) {
   const [progression, setProgression] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch('http://localhost:8000/api/v1/business/progression')
       .then(r => r.json())
-      .then(setProgression)
+      .then(data => {
+        if (!activeCase) {
+          setProgression([]);
+          return;
+        }
+        
+        // Find current case in progression
+        const activeNode = data.find((p: any) => p.id === activeCase.case_number);
+        if (!activeNode) {
+          setProgression([]);
+          return;
+        }
+        
+        // Filter progression: we only want the activeCase and things related to it
+        // Since backend only checks backwards, the activeNode has relationship info pointing backwards
+        // And later nodes might have relationship pointing back to activeNode
+        const related = data.filter((p: any) => {
+          if (p.id === activeCase.case_number) return true;
+          // If a later node points back (has relationship, but we don't know exactly to whom, 
+          // but if it's the same shared evidence, it's related)
+          // For simplicity, we just check if activeNode points back to it, or if it has same evidence as activeNode
+          // Wait, backend doesn't tell us WHICH case it's related to, just that it's related.
+          // Let's rely on basic correlation on the frontend.
+          const sameIoc = activeCase.evidence_custody?.sha256_hash && p.evidence?.includes(activeCase.evidence_custody?.sha256_hash);
+          const sameSender = activeCase.trace?.target_info?.sender_email && p.evidence?.includes(activeCase.trace?.target_info?.sender_email);
+          const sameTlsh = activeNode.relationship === "Content Similarity" && p.relationship === "Content Similarity" && p.evidence === activeNode.evidence;
+          const pointsToActive = p.evidence?.includes(activeCase.case_number); // if backend ever supported it
+          
+          // Actually, if the backend progression points backward to a shared evidence, let's just use matching evidence strings as a proxy for the campaign cluster
+          return sameIoc || sameSender || sameTlsh || pointsToActive || (activeNode.evidence && p.evidence === activeNode.evidence && p.relationship !== 'Initial Target');
+        });
+        
+        setProgression(related);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [activeCase]);
+
+  if (!activeCase) {
+    return <div className="dashboard-container dashboard-panel flex-col" style={{ padding: '48px' }}><EmptyState /></div>;
+  }
 
   return (
     <div className="dashboard-container dashboard-panel" style={{ padding: '24px', background: 'transparent', border: 'none', boxShadow: 'none', overflowY: 'auto' }}>
-       <h2 style={{ fontSize: '24px', margin: 0, marginBottom: '24px', fontWeight: 600 }}>Organizational Attack Progression</h2>
+       <h2 style={{ fontSize: '24px', margin: 0, marginBottom: '24px', fontWeight: 600 }}>Attack Progression (Current Case)</h2>
        {loading ? (
          <div className="glass-card flex-col" style={{ alignItems: 'center', padding: '48px', color: 'var(--muted)' }}>
            Loading progression data...
          </div>
        ) : (
          <div className="flex-col" style={{ gap: '16px', position: 'relative' }}>
-           {/* Timeline connector line */}
-           <div style={{ position: 'absolute', left: '24px', top: '24px', bottom: '24px', width: '2px', background: 'rgba(125,160,255,0.2)' }} />
+           {progression.length > 1 && <div style={{ position: 'absolute', left: '24px', top: '24px', bottom: '24px', width: '2px', background: 'rgba(125,160,255,0.2)' }} />}
            
            {progression.map((p, idx) => (
-             <div key={idx} className="glass-card flex-col" style={{ padding: '20px', gap: '16px', marginLeft: '48px', position: 'relative' }}>
-               {/* Timeline node */}
-               <div style={{ position: 'absolute', left: '-33px', top: '24px', width: '16px', height: '16px', borderRadius: '50%', background: 'var(--accent)', border: '3px solid #050a15' }} />
+             <div key={idx} className="glass-card flex-col" style={{ padding: '20px', gap: '16px', marginLeft: progression.length > 1 ? '48px' : '0', position: 'relative', border: p.id === activeCase.case_number ? '1px solid var(--accent)' : '1px solid rgba(255,255,255,0.05)' }}>
+               {progression.length > 1 && <div style={{ position: 'absolute', left: '-33px', top: '24px', width: '16px', height: '16px', borderRadius: '50%', background: p.id === activeCase.case_number ? 'var(--accent)' : 'var(--muted)', border: '3px solid #050a15' }} />}
                
                <div className="flex-between">
                  <div className="flex-row" style={{ gap: '12px', alignItems: 'center' }}>
                    <span style={{ fontWeight: 700, color: 'var(--white)', fontSize: '16px' }}>{p.id}</span>
+                   {p.id === activeCase.case_number ? (
+                     <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: 'rgba(125,160,255,0.1)', color: 'var(--accent)' }}>CURRENT CASE</span>
+                   ) : (
+                     <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', color: 'var(--secondary)' }}>RELATED HISTORICAL CASE</span>
+                   )}
                    <span className={`text-${p.severity === 'CRITICAL' || p.severity === 'HIGH' ? 'critical' : p.severity === 'MODERATE' ? 'warning' : 'safe'}`} style={{ fontSize: '12px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)' }}>
                      {p.severity}
                    </span>
@@ -314,14 +393,14 @@ function AttackProgression() {
                </div>
              </div>
            ))}
-           {progression.length === 0 && <div className="text-muted" style={{ marginLeft: '48px' }}>No attacks recorded yet.</div>}
+           {progression.length <= 1 && <div className="text-muted" style={{ marginLeft: '12px' }}>No related campaign identified.</div>}
          </div>
        )}
     </div>
   );
 }
 
-function EmployeeRisk() {
+function EmployeeRisk({ activeCase }: { activeCase: any }) {
   const [riskData, setRiskData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -329,18 +408,50 @@ function EmployeeRisk() {
     fetch('http://localhost:8000/api/v1/business/risk')
       .then(r => r.json())
       .then(data => {
-        // Sort by risk descending
         setRiskData(data.sort((a: any, b: any) => b.aggregate_risk - a.aggregate_risk));
       })
       .finally(() => setLoading(false));
   }, []);
 
+  if (!activeCase) {
+    return <div className="dashboard-container dashboard-panel flex-col" style={{ padding: '48px' }}><EmptyState /></div>;
+  }
+
+  const currentEmailTarget = activeCase.trace?.target_info?.target_email || "Unknown";
+  const currentDepartment = activeCase.trace?.target_info?.likely_department || "-";
+  
+  // Find current target in the historical risk data to show their full score, otherwise 0
+  const currentHistoricalRisk = riskData.find(r => r.target === currentEmailTarget);
+
   return (
     <div className="dashboard-container dashboard-panel" style={{ padding: '24px', background: 'transparent', border: 'none', boxShadow: 'none', overflowY: 'auto' }}>
        <h2 style={{ fontSize: '24px', margin: 0, marginBottom: '24px', fontWeight: 600 }}>Employee & Department Exposure</h2>
        
-       {loading ? <div className="text-muted">Loading risk data...</div> : (
+       <div className="glass-card flex-col" style={{ marginBottom: '24px', padding: '24px', border: '1px solid var(--accent)', background: 'rgba(125,160,255,0.05)' }}>
+         <span className="text-accent" style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1px', marginBottom: '8px' }}>CURRENT TARGET EXPOSURE</span>
+         <div className="flex-row" style={{ gap: '24px', alignItems: 'flex-start' }}>
+           <div className="flex-col" style={{ flex: 1, gap: '8px' }}>
+             <span className="text-muted" style={{ fontSize: '12px', fontWeight: 600 }}>TARGET EMAIL</span>
+             <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--white)' }}>{currentEmailTarget}</span>
+           </div>
+           <div className="flex-col" style={{ flex: 1, gap: '8px' }}>
+             <span className="text-muted" style={{ fontSize: '12px', fontWeight: 600 }}>LIKELY DEPARTMENT</span>
+             <span style={{ fontSize: '18px', fontWeight: 600, color: 'var(--secondary)' }}>{currentDepartment}</span>
+           </div>
+           <div className="flex-col" style={{ gap: '8px', alignItems: 'flex-end' }}>
+             <span className="text-muted" style={{ fontSize: '12px', fontWeight: 600 }}>AGGREGATE RISK</span>
+             <span className={`text-${currentHistoricalRisk && currentHistoricalRisk.aggregate_risk >= 80 ? 'critical' : currentHistoricalRisk && currentHistoricalRisk.aggregate_risk >= 40 ? 'warning' : 'safe'}`} style={{ fontSize: '24px', fontWeight: 700 }}>
+               {currentHistoricalRisk ? currentHistoricalRisk.aggregate_risk : activeCase.assertion?.threat_score || 0}
+             </span>
+           </div>
+         </div>
+       </div>
+
+       {loading ? <div className="text-muted">Loading historical risk data...</div> : (
          <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+           <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+             <h3 style={{ fontSize: '16px', margin: 0, color: 'var(--secondary)' }}>Organizational History</h3>
+           </div>
            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
              <thead>
                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}>
@@ -388,11 +499,10 @@ function EmployeeRisk() {
   );
 }
 
-function BusinessHistory() {
+function BusinessHistory({ setActiveCase }: { setActiveCase: (c: any) => void }) {
   const [cases, setCases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCase, setSelectedCase] = useState<any>(null);
 
   useEffect(() => {
     fetchCases()
@@ -405,22 +515,11 @@ function BusinessHistory() {
     setError(null);
     try {
       const detail = await fetchCase(caseNumber);
-      setSelectedCase(detail);
+      setActiveCase(detail); // This triggers global state change and navigation via callback
     } catch (e: any) {
       setError(e.message || 'Failed to fetch case details.');
     }
   };
-
-  if (selectedCase) {
-    return (
-      <div className="dashboard-container dashboard-panel flex-col" style={{ gap: '16px', padding: '24px', overflowY: 'auto' }}>
-        <button className="btn-secondary" onClick={() => setSelectedCase(null)} style={{ alignSelf: 'flex-start' }}>
-          &larr; BACK TO HISTORY
-        </button>
-        <AnalysisResultView result={selectedCase} />
-      </div>
-    );
-  }
 
   return (
     <div className="dashboard-container dashboard-panel" style={{ padding: '24px', background: 'transparent', border: 'none', boxShadow: 'none', overflowY: 'auto' }}>

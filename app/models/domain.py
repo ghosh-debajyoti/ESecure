@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, Integer, String, Boolean
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -13,6 +13,7 @@ class Case(Base):
     case_number = Column(String, unique=True, index=True)
     threat_score = Column(Float)
     status = Column(String, default="open")
+    is_training = Column(Boolean, default=False, index=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     infrastructure = Column(JSON, nullable=True)
