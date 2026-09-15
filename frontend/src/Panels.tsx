@@ -6,7 +6,7 @@ import { CircularProgress } from './components/CircularProgress';
 import { CurveChart } from './components/CurveChart';
 import { ThreatGradientBorder } from './components/ThreatGradientBorder';
 import { ErrorBoundary } from './ErrorBoundary';
-import { AttackGraph } from './AttackGraph';
+const AttackGraph = React.lazy(() => import('./AttackGraph').then(m => ({ default: m.AttackGraph })));
 import './Dashboard.css';
 
 export function AnalysisResultView({ result, onNewScan }: { result: any, onNewScan?: () => void }) {
@@ -552,7 +552,14 @@ export function AttackGraphPanel({ activeCase }: { activeCase: string | null }) 
   return (
     <div className="dashboard-container">
       <ErrorBoundary fallbackMessage="The Attack Graph encountered an error.">
-        <AttackGraph activeCase={activeCase} />
+        <React.Suspense fallback={
+          <div className="glass-card flex-col" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '600px', width: '100%' }}>
+            <CircularProgress progress={100} size={48} animate color="var(--accent)" />
+            <p className="text-muted" style={{ marginTop: '16px' }}>Loading Visualization Core...</p>
+          </div>
+        }>
+          <AttackGraph activeCase={activeCase} />
+        </React.Suspense>
       </ErrorBoundary>
     </div>
   );

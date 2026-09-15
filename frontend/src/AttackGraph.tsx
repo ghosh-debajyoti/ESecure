@@ -133,6 +133,7 @@ export function AttackGraph({ activeCase }: { activeCase: string | null }) {
               ctx.fillText(label, node.x, node.y + node.val + 2);
             }}
             cooldownTicks={100}
+            cooldownTime={15000}
             onEngineStop={() => fgRef.current?.zoomToFit(400, 50)}
           />
 

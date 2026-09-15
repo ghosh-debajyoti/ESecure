@@ -37,6 +37,11 @@ const NODE_DATA = [
   { label: "Risk Score", value: "98/100" },
 ];
 
+const nodeGeometry = new THREE.SphereGeometry(0.06, 16, 16);
+const materialDefault = new THREE.MeshBasicMaterial({ color: "#7da0ff" });
+const materialHover = new THREE.MeshBasicMaterial({ color: "#a2baf5" });
+const materialActive = new THREE.MeshBasicMaterial({ color: "#ffffff" });
+
 function InteractiveNode({ position, data }: { position: THREE.Vector3, data: any }) {
   const [hovered, setHover] = useState(false);
   const [active, setActive] = useState(false);
@@ -53,12 +58,12 @@ function InteractiveNode({ position, data }: { position: THREE.Vector3, data: an
     <mesh 
       ref={meshRef}
       position={position} 
+      geometry={nodeGeometry}
+      material={active ? materialActive : hovered ? materialHover : materialDefault}
       onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = 'pointer'; }}
       onPointerOut={(e) => { setHover(false); document.body.style.cursor = 'auto'; }}
       onClick={(e) => { e.stopPropagation(); setActive(!active); }}
     >
-      <sphereGeometry args={[0.06, 16, 16]} />
-      <meshBasicMaterial color={active ? "#ffffff" : hovered ? "#a2baf5" : "#7da0ff"} />
       {hovered && (
         <Html distanceFactor={12} center zIndexRange={[100, 0]}>
           <div className="node-tooltip">
@@ -137,7 +142,12 @@ function ThreatObject() {
 function ThreatSphere3D({ isBackground = false }: { isBackground?: boolean }) {
   return (
     <div className={`threat-sphere-container ${isBackground ? 'bg-mode' : ''}`}>
-      <Canvas camera={{ position: [0, 0, 8], fov: 45 }} style={isBackground ? { pointerEvents: 'none' } : {}}>
+      <Canvas 
+        camera={{ position: [0, 0, 8], fov: 45 }} 
+        style={isBackground ? { pointerEvents: 'none' } : {}}
+        dpr={[1, 1.5]}
+        performance={{ min: 0.5 }}
+      >
         <ambientLight intensity={0.2} />
         <directionalLight position={[10, 10, 5]} intensity={2} color="#7da0ff" />
         <pointLight position={[-10, -10, -5]} intensity={1} color="#ff3b30" />
@@ -161,6 +171,36 @@ function ThreatSphere3D({ isBackground = false }: { isBackground?: boolean }) {
 import { AnalyzePanel, CasesPanel, AttackGraphPanel, IOCsPanel, ReportsPanel } from "./Panels";
 import { useNavigate } from "react-router-dom";
 import { fetchCase } from "./api";
+
+const DashboardSidebar = React.memo(({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (t: string) => void }) => (
+  <aside className="dashboard-sidebar">
+    <div className="sidebar-logo">ES</div>
+    <nav className="sidebar-nav">
+      {[
+        { id: "ANALYZE", icon: Search },
+        { id: "CASES", icon: Folder },
+        { id: "ATTACK GRAPH", icon: Network },
+        { id: "IOCs", icon: Hash },
+        { id: "REPORTS", icon: FileText }
+      ].map(item => (
+        <button
+          key={item.id}
+          className={`sidebar-btn ${activeTab === item.id ? 'active' : ''}`}
+          onClick={() => setActiveTab(item.id)}
+          title={item.id}
+          aria-label={item.id}
+        >
+          <item.icon size={20} strokeWidth={2.5} />
+        </button>
+      ))}
+    </nav>
+    <div className="sidebar-bottom">
+      <button className="sidebar-btn" onClick={() => setActiveTab("HOME")} title="Home" aria-label="Home">
+        <Home size={20} strokeWidth={2.5} />
+      </button>
+    </div>
+  </aside>
+));
 
 export function AtmosHomePage() {
   const [activeTab, setActiveTab] = useState("HOME");
@@ -194,38 +234,6 @@ export function AtmosHomePage() {
   );
 
   const navItems = ["ANALYZE", "CASES", "ATTACK GRAPH", "IOCs", "REPORTS"];
-
-  
-  // Dashboard sidebar icons
-  const DashboardSidebar = () => (
-    <aside className="dashboard-sidebar">
-      <div className="sidebar-logo">ES</div>
-      <nav className="sidebar-nav">
-        {[
-          { id: "ANALYZE", icon: Search },
-          { id: "CASES", icon: Folder },
-          { id: "ATTACK GRAPH", icon: Network },
-          { id: "IOCs", icon: Hash },
-          { id: "REPORTS", icon: FileText }
-        ].map(item => (
-          <button
-            key={item.id}
-            className={`sidebar-btn ${activeTab === item.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(item.id)}
-            title={item.id}
-            aria-label={item.id}
-          >
-            <item.icon size={20} strokeWidth={2.5} />
-          </button>
-        ))}
-      </nav>
-      <div className="sidebar-bottom">
-        <button className="sidebar-btn" onClick={() => setActiveTab("HOME")} title="Home" aria-label="Home">
-          <Home size={20} strokeWidth={2.5} />
-        </button>
-      </div>
-    </aside>
-  );
 
   if (activeTab === "HOME") {
     return (
@@ -348,7 +356,7 @@ export function AtmosHomePage() {
         </div>
       )}
 
-      <DashboardSidebar />
+      <DashboardSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       <main className="dashboard-main-content">
         {activeTab === "ANALYZE" && <AnalyzePanel activeCase={activeCase} setActiveCase={setActiveCase} />}
         {activeTab === "CASES" && <CasesPanel activeCase={activeCase} setActiveCase={setActiveCase} />}
