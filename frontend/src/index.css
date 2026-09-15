@@ -12,3 +12,69 @@ body,
 body {
   background: #0d0d0d;
 }
+
+/* Global Loader Styles */
+.ekavach-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #040814;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999999;
+  transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+}
+
+.ekavach-loader.fade-out {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.ekavach-loader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.ekavach-loader-logo {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.15em;
+}
+
+.ekavach-loader-ring {
+  width: 48px;
+  height: 48px;
+  border: 2px solid rgba(0, 240, 255, 0.1);
+  border-top: 2px solid #00f0ff;
+  border-radius: 50%;
+  animation: ekavach-spin 1s linear infinite;
+}
+
+.ekavach-loader-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+@keyframes ekavach-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ekavach-loader-ring {
+    animation: none;
+    border: 2px solid #00f0ff;
+    border-top: 2px solid rgba(0, 240, 255, 0.5);
+  }
+}
