@@ -1,7 +1,10 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI
+import os
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import analyze, campaigns, attack_graph, iocs, thread, qr, business
@@ -50,6 +53,25 @@ app.include_router(attack_graph.router, prefix="/api/attack-graph", tags=["Attac
 app.include_router(iocs.router, prefix="/api/iocs", tags=["IOCs"])
 
 
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to the Email Threat Detection API"}
+# Mount specific assets directory to ensure CSS/JS works directly
+if os.path.isdir("static/assets"):
+    app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
+
+# SPA catch-all
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    # Do not intercept API routes
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="Not Found")
+    
+    # Check if a specific file exists
+    file_path = os.path.join("static", full_path)
+    if os.path.isfile(file_path):
+        return FileResponse(file_path)
+    
+    # Fallback to SPA index.html
+    index_path = os.path.join("static", "index.html")
+    if os.path.isfile(index_path):
+        return FileResponse(index_path)
+        
+    return {"detail": "Frontend build not found. Please build the frontend first."}
