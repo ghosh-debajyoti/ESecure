@@ -1,4 +1,4 @@
-# E-KAVACH — SIH Evaluator Guide
+# E-KAVACH
 
 > A simple guide for evaluators who want to understand the project beyond the presentation.
 
