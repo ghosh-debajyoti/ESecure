@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Network, Activity, Users, Home, ShieldAlert, FileText, UploadCloud, Search, Shield, Info, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { fetchCases, analyzeFile, fetchCase } from "./api";
+import { fetchCases, analyzeFile, fetchCase, API_BASE_URL } from "./api";
 import { AnalysisResultView } from "./Panels";
 import { CurveChart } from "./components/CurveChart";
 import { CircularProgress } from "./components/CircularProgress";
@@ -116,8 +116,8 @@ function BusinessOverview({ activeCase }: { activeCase: any }) {
 
   useEffect(() => {
     Promise.all([
-      fetch('http://localhost:8000/api/v1/business/risk').then(r => r.json()),
-      fetch('http://localhost:8000/api/v1/business/progression').then(r => r.json())
+      fetch(`${API_BASE_URL}/api/v1/business/risk`).then(r => r.json()),
+      fetch(`${API_BASE_URL}/api/v1/business/progression`).then(r => r.json())
     ])
     .then(([risk, progression]) => {
       setRiskData(risk);
@@ -293,7 +293,7 @@ function AttackProgression({ activeCase }: { activeCase: any }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/v1/business/progression')
+    fetch(`${API_BASE_URL}/api/v1/business/progression`)
       .then(r => r.json())
       .then(data => {
         if (!activeCase) {
@@ -405,7 +405,7 @@ function EmployeeRisk({ activeCase }: { activeCase: any }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/v1/business/risk')
+    fetch(`${API_BASE_URL}/api/v1/business/risk`)
       .then(r => r.json())
       .then(data => {
         setRiskData(data.sort((a: any, b: any) => b.aggregate_risk - a.aggregate_risk));
