@@ -1,8 +1,0 @@
-{
-  "name": "e-kavach",
-  "private": true,
-  "scripts": {
-    "install": "npm install --prefix frontend",
-    "build": "npm run build --prefix frontend && rm -rf public && mkdir public && cp -R frontend/dist/* public/"
-  }
-}
