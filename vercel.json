@@ -1,11 +1,3 @@
 {
-  "buildCommand": "cd frontend && npm install && npm run build && cd .. && rm -rf static && cp -R frontend/dist static",
-  "functions": {
-    "api/**/*.py": {
-      "excludeFiles": "{frontend/**,public/**,tests/**,data/**,scripts/**,*.eml,*.pdf,test_*.py,*.db,docs/**,train_model.py,generate_*.py}"
-    }
-  },
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/api/index.py" }
-  ]
+  "buildCommand": "cd frontend && npm install && npm run build && cd .. && rm -rf static && cp -R frontend/dist static"
 }
