@@ -6,6 +6,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
+
+APP_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = APP_DIR.parent
+FRONTEND_DIR = PROJECT_ROOT / "public"
+ASSETS_DIR = FRONTEND_DIR / "assets"
 
 from app.api.routes import analyze, campaigns, attack_graph, iocs, thread, qr, business
 from app.core.database import Base, engine
@@ -54,8 +60,8 @@ app.include_router(iocs.router, prefix="/api/iocs", tags=["IOCs"])
 
 
 # Mount specific assets directory to ensure CSS/JS works directly
-if os.path.isdir("public/assets"):
-    app.mount("/assets", StaticFiles(directory="public/assets"), name="assets")
+if ASSETS_DIR.is_dir():
+    app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
 
 # SPA catch-all
 @app.get("/{full_path:path}")
@@ -65,13 +71,13 @@ async def serve_spa(full_path: str):
         raise HTTPException(status_code=404, detail="Not Found")
     
     # Check if a specific file exists
-    file_path = os.path.join("public", full_path)
-    if os.path.isfile(file_path):
-        return FileResponse(file_path)
+    requested_file = FRONTEND_DIR / full_path
+    if requested_file.is_file():
+        return FileResponse(str(requested_file))
     
     # Fallback to SPA index.html
-    index_path = os.path.join("public", "index.html")
-    if os.path.isfile(index_path):
-        return FileResponse(index_path)
+    index_file = FRONTEND_DIR / "index.html"
+    if index_file.is_file():
+        return FileResponse(str(index_file))
         
     return {"detail": "Frontend build not found. Please build the frontend first."}

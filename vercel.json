@@ -1,13 +1,14 @@
 {
-  "buildCommand": "cd frontend && npm install && npm run build && cd .. && rm -rf public static && mkdir -p public && cp -R frontend/dist/. public/",
+  "buildCommand": "cd frontend && npm install && npm run build && cd .. && rm -rf public && mkdir -p public && cp -R frontend/dist/. public/ && test -f public/index.html && test -d public/assets && echo 'E-KAVACH frontend production files ready'",
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "/api/index.py"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/**/*.py": {
+      "includeFiles": "public/**"
+    }
+  }
 }
