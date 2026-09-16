@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd frontend && npm install && npm run build && cd .. && rm -rf public && cp -R frontend/dist public",
+  "buildCommand": "cd frontend && npm install && npm run build && cd .. && rm -rf public static && mkdir -p public && cp -R frontend/dist/. public/",
   "rewrites": [
     {
       "source": "/api/(.*)",

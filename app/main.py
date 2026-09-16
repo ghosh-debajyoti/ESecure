@@ -54,8 +54,8 @@ app.include_router(iocs.router, prefix="/api/iocs", tags=["IOCs"])
 
 
 # Mount specific assets directory to ensure CSS/JS works directly
-if os.path.isdir("static/assets"):
-    app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
+if os.path.isdir("public/assets"):
+    app.mount("/assets", StaticFiles(directory="public/assets"), name="assets")
 
 # SPA catch-all
 @app.get("/{full_path:path}")
@@ -65,12 +65,12 @@ async def serve_spa(full_path: str):
         raise HTTPException(status_code=404, detail="Not Found")
     
     # Check if a specific file exists
-    file_path = os.path.join("static", full_path)
+    file_path = os.path.join("public", full_path)
     if os.path.isfile(file_path):
         return FileResponse(file_path)
     
     # Fallback to SPA index.html
-    index_path = os.path.join("static", "index.html")
+    index_path = os.path.join("public", "index.html")
     if os.path.isfile(index_path):
         return FileResponse(index_path)
         
