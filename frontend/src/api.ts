@@ -2,13 +2,21 @@ export const API_BASE_URL = import.meta.env.PROD ? "" : (import.meta.env.VITE_AP
 
 export async function fetchCases() {
   const res = await fetch(`${API_BASE_URL}/api/v1/cases`);
-  if (!res.ok) throw new Error('Failed to fetch cases');
+  if (!res.ok) {
+    const err = await res.text().catch(() => 'Unknown error');
+    console.error('fetchCases failed:', res.status, err);
+    throw new Error(`Failed to fetch cases: ${res.statusText}`);
+  }
   return res.json();
 }
 
 export async function fetchCase(caseNumber: string) {
   const res = await fetch(`${API_BASE_URL}/api/v1/cases/${caseNumber}`);
-  if (!res.ok) throw new Error('Failed to fetch case');
+  if (!res.ok) {
+    const err = await res.text().catch(() => 'Unknown error');
+    console.error('fetchCase failed:', res.status, err);
+    throw new Error(`Failed to fetch case: ${res.statusText}`);
+  }
   return res.json();
 }
 
@@ -20,12 +28,20 @@ export async function analyzeFile(file: File) {
     method: 'POST',
     body: formData,
   });
-  if (!res.ok) throw new Error('Analysis failed');
+  if (!res.ok) {
+    const err = await res.text().catch(() => 'Unknown error');
+    console.error('analyzeFile failed:', res.status, err);
+    throw new Error(`Analysis failed. Please try again. (${res.status} ${res.statusText})`);
+  }
   return res.json();
 }
 export async function fetchCampaigns() {
   const res = await fetch(`${API_BASE_URL}/api/campaigns`);
-  if (!res.ok) throw new Error('Failed to fetch campaigns');
+  if (!res.ok) {
+    const err = await res.text().catch(() => 'Unknown error');
+    console.error('fetchCampaigns failed:', res.status, err);
+    throw new Error(`Failed to fetch campaigns: ${res.statusText}`);
+  }
   return res.json();
 }
 
@@ -42,7 +58,9 @@ export async function fetchAttackGraph(caseNumber: string | null = null, campaig
   const res = await fetch(url);
   if (!res.ok) {
     if (res.status === 404) return null; // Handle if no campaign graph exists
-    throw new Error('Failed to fetch attack graph');
+    const err = await res.text().catch(() => 'Unknown error');
+    console.error('fetchAttackGraph failed:', res.status, err);
+    throw new Error(`Failed to fetch attack graph: ${res.statusText}`);
   }
   return res.json();
 }
@@ -53,7 +71,9 @@ export async function fetchIOCs(campaignId: number = 1) {
   const res = await fetch(`${API_BASE_URL}/api/iocs/campaign/${campaignId}`);
   if (!res.ok) {
     if (res.status === 404) return [];
-    throw new Error('Failed to fetch IOCs');
+    const err = await res.text().catch(() => 'Unknown error');
+    console.error('fetchIOCs failed:', res.status, err);
+    throw new Error(`Failed to fetch IOCs: ${res.statusText}`);
   }
   return res.json();
 }
@@ -62,7 +82,9 @@ export async function fetchAllIOCs() {
   const res = await fetch(`${API_BASE_URL}/api/iocs`);
   if (!res.ok) {
     if (res.status === 404) return [];
-    throw new Error('Failed to fetch IOCs');
+    const err = await res.text().catch(() => 'Unknown error');
+    console.error('fetchAllIOCs failed:', res.status, err);
+    throw new Error(`Failed to fetch IOCs: ${res.statusText}`);
   }
   return res.json();
 }

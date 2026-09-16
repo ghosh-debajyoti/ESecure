@@ -1,5 +1,5 @@
 import { Search, Folder, Network, Hash, FileText, Home } from "lucide-react";
-import React, { useMemo, useState, useRef, useEffect } from "react";
+import React, { useMemo, useState, useRef, useEffect, Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Environment, Float, Icosahedron, OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
@@ -168,9 +168,14 @@ function ThreatSphere3D({ isBackground = false }: { isBackground?: boolean }) {
   );
 }
 
-import { AnalyzePanel, CasesPanel, AttackGraphPanel, IOCsPanel, ReportsPanel } from "./Panels";
 import { useNavigate } from "react-router-dom";
 import { fetchCase } from "./api";
+
+const AnalyzePanel = React.lazy(() => import("./Panels").then(m => ({ default: m.AnalyzePanel })));
+const CasesPanel = React.lazy(() => import("./Panels").then(m => ({ default: m.CasesPanel })));
+const AttackGraphPanel = React.lazy(() => import("./Panels").then(m => ({ default: m.AttackGraphPanel })));
+const IOCsPanel = React.lazy(() => import("./Panels").then(m => ({ default: m.IOCsPanel })));
+const ReportsPanel = React.lazy(() => import("./Panels").then(m => ({ default: m.ReportsPanel })));
 
 const DashboardSidebar = React.memo(({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (t: string) => void }) => (
   <aside className="dashboard-sidebar">
@@ -358,11 +363,13 @@ export function AtmosHomePage() {
 
       <DashboardSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       <main className="dashboard-main-content">
-        {activeTab === "ANALYZE" && <AnalyzePanel activeCase={activeCase} setActiveCase={setActiveCase} />}
-        {activeTab === "CASES" && <CasesPanel activeCase={activeCase} setActiveCase={setActiveCase} />}
-        {activeTab === "ATTACK GRAPH" && <AttackGraphPanel activeCase={activeCase} />}
-        {activeTab === "IOCs" && <IOCsPanel activeCase={activeCase} />}
-        {activeTab === "REPORTS" && <ReportsPanel activeCase={activeCase} />}
+        <Suspense fallback={<div className="glass-card" style={{ padding: '24px', textAlign: 'center', color: 'var(--accent)' }}>Loading panel...</div>}>
+          {activeTab === "ANALYZE" && <AnalyzePanel activeCase={activeCase} setActiveCase={setActiveCase} />}
+          {activeTab === "CASES" && <CasesPanel activeCase={activeCase} setActiveCase={setActiveCase} />}
+          {activeTab === "ATTACK GRAPH" && <AttackGraphPanel activeCase={activeCase} />}
+          {activeTab === "IOCs" && <IOCsPanel activeCase={activeCase} />}
+          {activeTab === "REPORTS" && <ReportsPanel activeCase={activeCase} />}
+        </Suspense>
       </main>
     </div>
   );

@@ -1,3 +1,13 @@
 {
-  "buildCommand": "cd frontend && npm install && npm run build && cd .. && rm -rf static && cp -R frontend/dist static"
+  "buildCommand": "cd frontend && npm install && npm run build && cd .. && rm -rf public && cp -R frontend/dist public",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
