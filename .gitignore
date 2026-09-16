@@ -12,3 +12,8 @@ node_modules/
 .next/
 results/
 saved_phishing_model/
+
+# Generated frontend output
+public/
+static/
+frontend/dist/
